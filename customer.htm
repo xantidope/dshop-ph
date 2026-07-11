@@ -1,631 +1,420 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<meta name="theme-color" content="#ff5a1f">
-<title>D-Shop Customer</title>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<style>
-  :root{ --brand:#ff5a1f; }
-  *{font-family:system-ui,sans-serif; -webkit-tap-highlight-color: transparent;}
-  body{background:#f8fafc; padding-bottom: 80px;}
-  .brand-grad{background:linear-gradient(135deg,#ff5a1f 0%,#ff8a3d 100%);}
-  .brand-text{color:#ff5a1f;}
-  .sticky-cart { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e2e8f0; padding: 1rem; z-index: 50; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); transform: translateY(100%); transition: transform 0.3s ease; }
-  .sticky-cart.visible { transform: translateY(0); }
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="D-Shop">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="D-Shop PH - Order food for delivery">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/192/shop.png">
+    <title>D-Shop PH - Customer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; padding-bottom: 80px; }
+        .safe-top { padding-top: env(safe-area-inset-top, 20px); }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .cart-badge { position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .qty-btn { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; z-index: 50; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 0; font-size: 11px; color: #9ca3af; }
+        .nav-item.active { color: #2563eb; }
+        .status-bar { height: 4px; border-radius: 2px; overflow: hidden; background: #e5e7eb; }
+        .status-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+        .toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 12px 24px; border-radius: 12px; z-index: 100; font-size: 14px; animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+        .modal-sheet { background: white; border-radius: 24px 24px 0 0; width: 100%; max-height: 85vh; overflow-y: auto; }
+        input, textarea { font-size: 16px !important; }
+    </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
 
-<header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 p-4 flex items-center justify-between">
-  <div class="flex items-center gap-2">
-    <div class="w-8 h-8 rounded-lg brand-grad flex items-center justify-center"><i data-lucide="shopping-bag" class="w-4 h-4 text-white"></i></div>
-    <h1 class="font-bold text-lg">D-Shop PH</h1>
-  </div>
-  <button onclick="showOrders()" class="p-2 relative">
-    <i data-lucide="receipt" class="w-6 h-6"></i>
-    <span id="orderBadge" class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center hidden">0</span>
-  </button>
-</header>
-
-<main class="p-4 max-w-md mx-auto">
-  <div class="bg-white rounded-lg flex items-center gap-2 px-3 py-2 shadow-sm border border-slate-100 mb-4">
-    <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
-    <input id="searchInput" type="text" placeholder="Search Adobo, Sisig..." class="flex-1 bg-transparent text-sm w-full outline-none"/>
-  </div>
-
-  <div class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar" id="cats"></div>
-
-  <div id="menu" class="space-y-4"></div>
-
-  <div id="ordersView" class="hidden space-y-4">
-    <h2 class="font-bold text-xl">My Orders</h2>
-    <div id="orderList"></div>
-    <button onclick="showMenu()" class="w-full py-2 text-sm text-slate-500">← Back to Menu</button>
-  </div>
-</main>
-
-<div id="cartBar" class="sticky-cart">
-  <div class="flex justify-between items-center mb-2">
-    <span class="font-bold"><span id="cartCount">0</span> items</span>
-    <span class="font-bold text-lg brand-text" id="cartTotal">₱0</span>
-  </div>
-  <button onclick="checkout()" class="w-full brand-grad text-white font-bold py-3 rounded-xl">Checkout</button>
-</div>
-
-<script>
-const DB_KEY = 'dshop_orders';
-const MENU_KEY = 'dshop_menu';
-
-const DEFAULT_MENU = [
-  {id:1, name:'Tapsilog', price:120, cat:'silog', desc:'Beef tapa, garlic rice, egg', img:'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=500'},
-  {id:2, name:'Crispy Chicken', price:185, cat:'chicken', desc:'2 pcs crispy chicken with rice', img:'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500'},
-  {id:3, name:'Sisig', price:160, cat:'beef', desc:'Crispy pork face with onions', img:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500'},
-  {id:4, name:'Pancit Canton', price:95, cat:'noodles', desc:'Stir-fried noodles', img:'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=500'},
-  {id:5, name:'Halo-Halo', price:85, cat:'dessert', desc:'Mixed ice dessert', img:'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=500'},
-  {id:6, name:'Mango Shake', price:65, cat:'drinks', desc:'Fresh mango smoothie', img:'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=500'}
-];
-
-let cart = [];
-let menu = JSON.parse(localStorage.getItem(MENU_KEY)) || DEFAULT_MENU;
-let customerOrders = [];
-let activeCat = 'all';
-let customerName = localStorage.getItem('customerName') || '';
-
-// Firebase listener
-if (db) {
-  db.collection('menu').onSnapshot((snapshot) => {
-    menu = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-    localStorage.setItem(MENU_KEY, JSON.stringify(menu));
-    renderMenu();
-  });
-
-  const customerQuery = customerName ? 
-    db.collection('orders').where('customer', '==', customerName).orderBy('time', 'desc') :
-    db.collection('orders').orderBy('time', 'desc').limit(10);
-    
-  customerQuery.onSnapshot((snapshot) => {
-    customerOrders = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-    updateOrderBadge();
-    if(!document.getElementById('ordersView').classList.contains('hidden')) {
-      renderOrders();
-    }
-  });
-} else {
-  window.addEventListener('storage', (e) => {
-    if(e.key === DB_KEY) {
-      loadLocalOrders();
-      renderOrders();
-    }
-  });
-}
-
-function loadLocalOrders() {
-  const allOrders = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-  customerOrders = customerName ? 
-    allOrders.filter(o => o.customer === customerName) : 
-    allOrders.slice(0, 10);
-}
-
-function updateOrderBadge() {
-  const activeOrders = customerOrders.filter(o => o.status !== 'delivered').length;
-  const badge = document.getElementById('orderBadge');
-  if(activeOrders > 0) {
-    badge.textContent = activeOrders;
-    badge.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden');
-  }
-}
-
-function renderCats(){
-  const cats = ['all', ...new Set(menu.map(m => m.cat))];
-  document.getElementById('cats').innerHTML = cats.map(c => 
-    `<button onclick="setCat('${c}')" class="px-4 py-1.5 rounded-full text-xs font-bold border whitespace-nowrap ${activeCat===c?'bg-orange-500 text-white border-orange-500':'bg-white text-slate-600 border-slate-200'}">${c.toUpperCase()}</button>`
-  ).join('');
-}
-
-function setCat(c){ activeCat=c; renderCats(); renderMenu(); }
-
-function renderMenu(){
-  renderCats();
-  const grid = document.getElementById('menu');
-  let items = menu;
-  if(activeCat !== 'all') items = items.filter(i=>i.cat===activeCat);
-  
-  grid.innerHTML = items.map(i => `
-    <div class="bg-white p-3 rounded-xl border border-slate-100 flex gap-3">
-      <img src="${i.img}" class="w-20 h-20 rounded-lg object-cover bg-slate-100" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect fill=%22%23f1f5f9%22 width=%2280%22 height=%2280%22/%3E%3Ctext x=%2240%22 y=%2245%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22 font-size=%2212%22%3ENo Image%3C/text%3E%3C/svg%3E'">
-      <div class="flex-1">
-        <h3 class="font-bold text-sm">${i.name}</h3>
-        <p class="text-xs text-slate-500 mb-2">${i.desc || 'Delicious local food'}</p>
-        <div class="flex justify-between items-center">
-          <span class="font-bold text-orange-600">₱${i.price}</span>
-          <button onclick="addToCart(${i.id})" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i data-lucide="plus" class="w-4 h-4"></i></button>
+    <!-- Header -->
+    <header class="safe-top bg-blue-600 text-white p-4 sticky top-0 z-40 shadow-lg">
+        <div class="flex items-center justify-between">
+            <a href="index.html" class="text-white/80 text-sm">← Home</a>
+            <h1 class="text-lg font-bold">🛒 D-Shop PH</h1>
+            <button onclick="openCart()" class="relative p-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+                <span id="cart-badge" class="cart-badge hidden">0</span>
+            </button>
         </div>
-      </div>
-    </div>
-  `).join('');
-  lucide.createIcons();
-}
+    </header>
 
-function addToCart(id){
-  const item = menu.find(i=>i.id===id);
-  const exist = cart.find(c=>c.id===id);
-  if(exist) exist.qty++; else cart.push({...item, qty:1});
-  updateCart();
-}
-
-function updateCart(){
-  const count = cart.reduce((a,b)=>a+b.qty,0);
-  const total = cart.reduce((a,b)=>a+(b.price*b.qty),0) + 49;
-  document.getElementById('cartCount').innerText = count;
-  document.getElementById('cartTotal').innerText = '₱'+total;
-  const bar = document.getElementById('cartBar');
-  if(count>0) bar.classList.add('visible'); else bar.classList.remove('visible');
-}
-
-async function checkout(){
-  if(!customerName) {
-    customerName = prompt("Enter your name:");
-    if(!customerName) return;
-    localStorage.setItem('customerName', customerName);
-  }
-  
-  const address = prompt("Delivery address:");
-  if(!address) return;
-  
-  const order = {
-    customer: customerName,
-    address: address,
-    items: cart,
-    total: cart.reduce((a,b)=>a+(b.price*b.qty),0) + 49,
-    status: 'new',
-    rider: null,
-    time: new Date().toISOString()
-  };
-  
-  try {
-    if (db) {
-      order.time = firebase.firestore.FieldValue.serverTimestamp();
-      await db.collection('orders').add(order);
-    } else {
-      order.id = 'ORD-' + Date.now();
-      const orders = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-      orders.unshift(order);
-      localStorage.setItem(DB_KEY, JSON.stringify(orders));
-    }
-    
-    cart = [];
-    updateCart();
-    alert("✅ Order Placed!\n\nTrack your order in 'My Orders'.");
-    showOrders();
-  } catch(error) {
-    alert("❌ Error: " + error.message);
-  }
-}
-
-function showOrders(){
-  document.getElementById('menu').classList.add('hidden');
-  document.getElementById('cats').classList.add('hidden');
-  document.getElementById('ordersView').classList.remove('hidden');
-  document.getElementById('cartBar').classList.remove('visible');
-  if(!db) loadLocalOrders();
-  renderOrders();
-}
-
-function showMenu(){
-  document.getElementById('menu').classList.remove('hidden');
-  document.getElementById('cats').classList.remove('hidden');
-  document.getElementById('ordersView').classList.add('hidden');
-}
-
-function renderOrders(){
-  const list = document.getElementById('orderList');
-  if(customerOrders.length===0) { 
-    list.innerHTML='<p class="text-center text-slate-400 py-10">No orders yet</p>'; 
-    return; 
-  }
-  
-  list.innerHTML = customerOrders.map(o => `
-    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-      <div class="flex justify-between mb-2">
-        <span class="font-bold text-sm">${o.id ? o.id.substring(0,8) : 'Order'}</span>
-        <span class="text-xs font-bold px-2 py-1 rounded ${getStatusColor(o.status)}">${o.status.toUpperCase()}</span>
-      </div>
-      <p class="text-xs text-slate-500">${o.items.length} items • ₱${o.total}</p>
-      ${o.rider ? `<div class="mt-2 text-xs bg-blue-50 p-2 rounded text-blue-700">🛵 Rider: ${o.rider}</div>` : ''}
-      <div class="mt-2 w-full bg-slate-200 rounded-full h-2">
-        <div class="bg-orange-500 h-2 rounded-full" style="width: ${getStatusProgress(o.status)}%"></div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function getStatusColor(status) {
-  const colors = {
-    'new': 'bg-yellow-100 text-yellow-700',
-    'preparing': 'bg-purple-100 text-purple-700',
-    'out': 'bg-orange-100 text-orange-700',
-    'delivered': 'bg-green-100 text-green-700'
-  };
-  return colors[status] || 'bg-slate-100 text-slate-700';
-}
-
-function getStatusProgress(status) {
-  const progress = {'new': 25, 'preparing': 50, 'out': 75, 'delivered': 100};
-  return progress[status] || 0;
-}
-
-document.getElementById('searchInput').addEventListener('input', (e)=>{
-  const query = e.target.value.toLowerCase();
-  const items = menu.filter(i => i.name.toLowerCase().includes(query));
-  const grid = document.getElementById('menu');
-  grid.innerHTML = items.map(i => `
-    <div class="bg-white p-3 rounded-xl border border-slate-100 flex gap-3">
-      <img src="${i.img}" class="w-20 h-20 rounded-lg object-cover bg-slate-100">
-      <div class="flex-1">
-        <h3 class="font-bold text-sm">${i.name}</h3>
-        <p class="text-xs text-slate-500 mb-2">${i.desc || 'Delicious local food'}</p>
-        <div class="flex justify-between items-center">
-          <span class="font-bold text-orange-600">₱${i.price}</span>
-          <button onclick="addToCart(${i.id})" class="bg-orange-100 text-orange-600 w-8 h-8 rounded-full flex items-center justify-center"><i data-lucide="plus" class="w-4 h-4"></i></button>
+    <!-- Main Content -->
+    <main class="p-4">
+        <!-- Active Order Banner -->
+        <div id="active-order-banner" class="hidden mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-2xl shadow-lg">
+            <div class="flex justify-between items-center mb-2">
+                <span class="font-bold text-sm" id="active-order-status">⏳ Preparing...</span>
+                <span class="text-xs bg-white/20 px-2 py-1 rounded-full" id="active-order-id">#---</span>
+            </div>
+            <div class="status-bar mb-2">
+                <div id="active-order-bar" class="status-bar-fill bg-white" style="width: 25%"></div>
+            </div>
+            <p class="text-xs text-white/80" id="active-order-detail">Your order is being prepared</p>
         </div>
-      </div>
-    </div>
-  `).join('');
-  lucide.createIcons();
-});
 
-// Initialize
-renderMenu();
-if(!db) loadLocalOrders();
-lucide.createIcons();
-</script>
+        <!-- Search Bar -->
+        <div class="mb-4">
+            <input type="text" id="search-input" oninput="filterMenu()" placeholder="🔍 Search menu..." class="w-full p-3 bg-white rounded-xl shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <!-- Category Pills -->
+        <div class="flex gap-2 overflow-x-auto mb-4 pb-2" id="category-pills">
+            <button onclick="filterByCategory('all')" class="category-pill active bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">All</button>
+        </div>
+
+        <!-- Menu Grid -->
+        <div id="menu-grid" class="space-y-3">
+            <div class="text-center py-12 text-gray-400">
+                <div class="text-4xl mb-2">🍽️</div>
+                <p>Loading menu...</p>
+            </div>
+        </div>
+
+        <!-- My Orders Section -->
+        <section id="orders-section" class="mt-6 hidden">
+            <h2 class="text-xl font-bold mb-3">My Orders</h2>
+            <div id="orders-list" class="space-y-3"></div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav safe-bottom">
+        <div class="flex max-w-lg mx-auto">
+            <button onclick="showPage('menu')" class="nav-item active" id="nav-menu">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                Menu
+            </button>
+            <button onclick="showPage('orders')" class="nav-item" id="nav-orders">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Orders
+            </button>
+            <button onclick="openCart()" class="nav-item" id="nav-cart">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                Cart
+            </button>
+        </div>
+    </nav>
+
+    <!-- Cart Modal (Bottom Sheet) -->
+    <div id="cart-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeCart()">
+        <div class="modal-sheet slide-up">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-bold">🛒 Your Cart</h3>
+                <button onclick="closeCart()" class="text-gray-400 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="cart-items" class="p-4 space-y-3 min-h-[200px]">
+                <p class="text-center text-gray-400 py-8">Your cart is empty</p>
+            </div>
+            <div class="p-4 border-t bg-gray-50">
+                <div class="flex justify-between text-sm text-gray-500 mb-1">
+                    <span>Subtotal</span>
+                    <span id="cart-subtotal">₱0</span>
+                </div>
+                <div class="flex justify-between text-sm text-gray-500 mb-2">
+                    <span>Delivery Fee</span>
+                    <span id="cart-delivery">₱40</span>
+                </div>
+                <div class="flex justify-between text-lg font-bold mb-4">
+                    <span>Total</span>
+                    <span id="cart-total" class="text-blue-600">₱0</span>
+                </div>
+                <button onclick="checkout()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg active:bg-blue-700 transition">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeCheckout()">
+        <div class="modal-sheet slide-up p-6">
+            <h3 class="text-lg font-bold mb-4">📍 Delivery Details</h3>
+            <input id="checkout-name" type="text" placeholder="Your Full Name" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input id="checkout-phone" type="tel" placeholder="Phone Number (09XXXXXXXXX)" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <textarea id="checkout-address" placeholder="Complete Delivery Address" rows="3" class="w-full p-3 border rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <div class="bg-blue-50 p-3 rounded-xl mb-4">
+                <p class="text-sm text-blue-700">💳 Payment: <strong>Cash on Delivery</strong></p>
+            </div>
+            <button onclick="placeOrder()" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg active:bg-green-700 transition">Place Order</button>
+            <button onclick="closeCheckout()" class="w-full text-gray-500 py-3 mt-2">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ⚙️ APPWRITE CONFIGURATION
+        // ==========================================
+        const client = new Appwrite.Client();
+        client.setEndpoint('https://sgp.cloud.appwrite.io/v1').setProject('6a5099d00031731cad59');
+        const databases = new Appwrite.Databases(client);
+        const DB_ID = '6a509abf002aed29dd40';
+        const SETTINGS_DOC_ID = 'YOUR_SETTINGS_DOC_ID';
+
+        let cart = [];
+        let deliveryFee = 40;
+        let allMenuItems = [];
+        let activeOrderUnsubscribe = null;
+
+        // ==========================================
+        // 🔧 PWA: Register Service Worker
+        // ==========================================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                console.log('✅ Service Worker registered');
+            });
+        }
+
+        // ==========================================
+        // 🍔 LOAD MENU
+        // ==========================================
+        async function loadMenu() {
+            try {
+                const res = await databases.listDocuments(DB_ID, 'menu_items', [
+                    Appwrite.Query.equal('is_available', true)
+                ]);
+                allMenuItems = res.documents;
+                renderMenu(allMenuItems);
+                renderCategories(allMenuItems);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('menu-grid').innerHTML = `
+                    <div class="text-center py-12 text-red-500">
+                        <div class="text-4xl mb-2">😕</div>
+                        <p>Failed to load menu</p>
+                        <button onclick="loadMenu()" class="mt-2 text-blue-600 text-sm">Tap to retry</button>
+                    </div>`;
+            }
+        }
+
+        function renderCategories(items) {
+            const cats = [...new Set(items.map(i => i.category).filter(Boolean))];
+            const container = document.getElementById('category-pills');
+            container.innerHTML = `<button onclick="filterByCategory('all')" class="category-pill bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">All</button>` +
+                cats.map(c => `<button onclick="filterByCategory('${c}')" class="category-pill bg-white text-gray-600 border px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">${c}</button>`).join('');
+        }
+
+        function filterByCategory(cat) {
+            document.querySelectorAll('.category-pill').forEach(p => { p.className = p.className.replace('bg-blue-600 text-white', 'bg-white text-gray-600 border'); });
+            event.target.className = event.target.className.replace('bg-white text-gray-600 border', 'bg-blue-600 text-white');
+            const filtered = cat === 'all' ? allMenuItems : allMenuItems.filter(i => i.category === cat);
+            renderMenu(filtered);
+        }
+
+        function filterMenu() {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            const filtered = allMenuItems.filter(i => i.name.toLowerCase().includes(q) || (i.description||'').toLowerCase().includes(q));
+            renderMenu(filtered);
+        }
+
+        function renderMenu(items) {
+            const grid = document.getElementById('menu-grid');
+            if (items.length === 0) {
+                grid.innerHTML = '<div class="text-center py-12 text-gray-400"><div class="text-4xl mb-2">🔍</div><p>No items found</p></div>';
+                return;
+            }
+            grid.innerHTML = items.map(item => {
+                const inCart = cart.find(c => c.id === item.$id);
+                return `
+                <div class="bg-white p-3 rounded-2xl shadow-sm flex gap-3 fade-in border border-gray-100">
+                    <img src="${item.image_url || 'https://via.placeholder.com/100?text=🍽️'}" class="w-24 h-24 rounded-xl object-cover flex-shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-base truncate">${item.name}</h3>
+                        <p class="text-xs text-gray-400 truncate">${item.description || ''}</p>
+                        <span class="inline-block text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full mt-1">${item.category || 'Food'}</span>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="font-bold text-blue-600 text-lg">₱${item.price}</span>
+                            ${inCart ? `
+                                <div class="flex items-center gap-2">
+                                    <button onclick="updateQty('${item.$id}', -1)" class="qty-btn bg-gray-200 text-gray-700">−</button>
+                                    <span class="font-bold w-6 text-center">${inCart.qty}</span>
+                                    <button onclick="updateQty('${item.$id}', 1)" class="qty-btn bg-blue-600 text-white">+</button>
+                                </div>
+                            ` : `
+                                <button onclick="addToCart('${item.$id}', '${item.name.replace(/'/g,"\\'")}', ${item.price})" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold active:bg-blue-700">Add</button>
+                            `}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ==========================================
+        // 🛒 CART LOGIC
+        // ==========================================
+        function addToCart(id, name, price) {
+            cart.push({ id, name, price, qty: 1 });
+            updateCartUI();
+            renderMenu(getCurrentFilteredItems());
+            showToast(`${name} added to cart`);
+        }
+
+        function updateQty(id, delta) {
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            item.qty += delta;
+            if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+            updateCartUI();
+            renderMenu(getCurrentFilteredItems());
+        }
+
+        function getCurrentFilteredItems() {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            const activePill = document.querySelector('.category-pill.bg-blue-600');
+            const cat = activePill ? activePill.textContent.trim() : 'All';
+            let items = allMenuItems;
+            if (cat !== 'All') items = items.filter(i => i.category === cat);
+            if (q) items = items.filter(i => i.name.toLowerCase().includes(q));
+            return items;
+        }
+
+        function updateCartUI() {
+            const count = cart.reduce((s, i) => s + i.qty, 0);
+            const badge = document.getElementById('cart-badge');
+            badge.innerText = count;
+            badge.classList.toggle('hidden', count === 0);
+
+            const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            document.getElementById('cart-subtotal').innerText = `₱${subtotal}`;
+            document.getElementById('cart-total').innerText = `₱${subtotal + (count > 0 ? deliveryFee : 0)}`;
+
+            const container = document.getElementById('cart-items');
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 py-8">Your cart is empty</p>';
+            } else {
+                container.innerHTML = cart.map(i => `
+                    <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium truncate">${i.name}</p>
+                            <p class="text-sm text-blue-600 font-bold">₱${i.price * i.qty}</p>
+                        </div>
+                        <div class="flex items-center gap-2 ml-3">
+                            <button onclick="updateQty('${i.id}', -1)" class="qty-btn bg-gray-200 text-gray-700">−</button>
+                            <span class="font-bold w-6 text-center">${i.qty}</span>
+                            <button onclick="updateQty('${i.id}', 1)" class="qty-btn bg-blue-600 text-white">+</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function openCart() { document.getElementById('cart-modal').classList.remove('hidden'); }
+        function closeCart() { document.getElementById('cart-modal').classList.add('hidden'); }
+
+        // ==========================================
+        // 💳 CHECKOUT
+        // ==========================================
+        function checkout() {
+            if (cart.length === 0) return showToast('Cart is empty!');
+            closeCart();
+            document.getElementById('checkout-modal').classList.remove('hidden');
+        }
+
+        function closeCheckout() { document.getElementById('checkout-modal').classList.add('hidden'); }
+
+        async function placeOrder() {
+            const name = document.getElementById('checkout-name').value.trim();
+            const phone = document.getElementById('checkout-phone').value.trim();
+            const address = document.getElementById('checkout-address').value.trim();
+            if (!name || !address) return showToast('Please fill in your name and address');
+
+            const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            const total = subtotal + deliveryFee;
+
+            try {
+                const order = await databases.createDocument(DB_ID, 'orders', Appwrite.ID.unique(), {
+                    customer_name: name,
+                    delivery_address: `${address} | 📞 ${phone}`,
+                    total_amount: total,
+                    status: 'pending',
+                    items_json: JSON.stringify(cart)
+                });
+
+                closeCheckout();
+                showToast('✅ Order placed!');
+                cart = [];
+                updateCartUI();
+                renderMenu(getCurrentFilteredItems());
+                trackOrder(order.$id);
+            } catch (err) {
+                console.error(err);
+                showToast('❌ Failed to place order');
+            }
+        }
+
+        // ==========================================
+        // 📍 REAL-TIME ORDER TRACKING
+        // ==========================================
+        function trackOrder(orderId) {
+            const banner = document.getElementById('active-order-banner');
+            banner.classList.remove('hidden');
+            document.getElementById('active-order-id').innerText = `#${orderId.substring(0, 8)}`;
+            document.getElementById('orders-section').classList.remove('hidden');
+            showPage('orders');
+
+            if (activeOrderUnsubscribe) activeOrderUnsubscribe();
+
+            activeOrderUnsubscribe = client.subscribe(`documents.${orderId}`, (res) => {
+                const order = res.payload;
+                const stages = {
+                    'pending':          { pct: 10,  emoji: '⏳', text: 'Waiting for rider...', bar: 'bg-yellow-400' },
+                    'preparing':        { pct: 35,  emoji: '🍳', text: 'Food is being prepared', bar: 'bg-orange-400' },
+                    'out_for_delivery': { pct: 70,  emoji: '🛵', text: 'Rider is on the way!', bar: 'bg-blue-400' },
+                    'delivered':        { pct: 100, emoji: '✅', text: 'Delivered! Enjoy your meal', bar: 'bg-green-400' }
+                };
+                const stage = stages[order.status] || stages['pending'];
+
+                document.getElementById('active-order-status').innerText = `${stage.emoji} ${order.status.replace(/_/g, ' ')}`;
+                document.getElementById('active-order-detail').innerText = stage.text;
+                const bar = document.getElementById('active-order-bar');
+                bar.style.width = stage.pct + '%';
+                bar.className = `status-bar-fill ${stage.bar}`;
+
+                if (order.status === 'delivered') {
+                    showToast('🎉 Order delivered!');
+                    setTimeout(() => banner.classList.add('hidden'), 10000);
+                }
+            });
+        }
+
+        // ==========================================
+        // 🧭 NAVIGATION & UTILS
+        // ==========================================
+        function showPage(page) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`nav-${page}`).classList.add('active');
+            if (page === 'menu') {
+                document.getElementById('menu-grid').parentElement.classList.remove('hidden');
+                document.getElementById('orders-section').classList.add('hidden');
+            } else if (page === 'orders') {
+                document.getElementById('orders-section').classList.remove('hidden');
+            }
+        }
+
+        function showToast(msg) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerText = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // Initialize
+        loadMenu();
+    </script>
 </body>
 </html>
-```
-
----
-
-## 📄 File 4: `rider.html`
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<meta name="theme-color" content="#0f172a">
-<title>D-Shop Rider</title>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<style>
-  *{font-family:system-ui,sans-serif;}
-  body{background:#f8fafc;}
-  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-around; padding: 0.75rem 0; z-index: 50; }
-  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.5rem; color: #64748b; font-size: 0.75rem; font-weight: 600; border: none; background: none; cursor: pointer; }
-  .nav-btn.active { color: #0f172a; }
-</style>
-</head>
-<body class="pb-20">
-
-<div id="mainView">
-  <header class="flex justify-between items-center mb-6 p-4">
-    <h1 class="font-bold text-xl">Rider App</h1>
-    <label class="flex items-center gap-2 cursor-pointer">
-      <span class="text-sm font-bold" id="statusText">OFFLINE</span>
-      <input type="checkbox" id="toggle" class="sr-only peer">
-      <div class="w-10 h-6 bg-slate-300 rounded-full peer peer-checked:bg-green-500 relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition peer-checked:after:translate-x-4"></div>
-    </label>
-  </header>
-
-  <div class="p-4">
-    <div class="bg-slate-900 text-white p-5 rounded-2xl mb-6 shadow-lg">
-      <p class="text-slate-400 text-xs uppercase">Today's Earnings</p>
-      <h2 class="text-3xl font-bold" id="earnings">₱0</h2>
-      <p class="text-xs text-slate-400 mt-1"><span id="deliveryCount">0</span> deliveries</p>
-    </div>
-
-    <h3 class="font-bold text-lg mb-3">Available Jobs</h3>
-    <div id="jobs" class="space-y-3">
-      <p class="text-center text-slate-400 text-sm">Go online to see jobs</p>
-    </div>
-  </div>
-</div>
-
-<div id="settingsView" class="hidden">
-  <header class="flex items-center gap-3 mb-6 p-4 border-b border-slate-200">
-    <button onclick="showMain()" class="p-2 hover:bg-slate-100 rounded-lg">
-      <i data-lucide="arrow-left" class="w-5 h-5"></i>
-    </button>
-    <h1 class="font-bold text-xl">Settings</h1>
-  </header>
-
-  <div class="p-4 space-y-4">
-    <div class="bg-white rounded-xl p-4 shadow-sm">
-      <h3 class="font-bold text-sm text-slate-500 uppercase mb-3">Profile</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Full Name</label>
-          <input id="settingName" type="text" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Phone Number</label>
-          <input id="settingPhone" type="tel" placeholder="09XX XXX XXXX" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl p-4 shadow-sm">
-      <h3 class="font-bold text-sm text-slate-500 uppercase mb-3">Vehicle</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Vehicle Type</label>
-          <select id="settingVehicleType" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-            <option value="motorcycle">Motorcycle</option>
-            <option value="bicycle">Bicycle</option>
-            <option value="car">Car</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Plate Number</label>
-          <input id="settingPlate" type="text" placeholder="ABC-1234" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm uppercase">
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl p-4 shadow-sm">
-      <h3 class="font-bold text-sm text-slate-500 uppercase mb-3">Payment</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-slate-600">GCash Number</label>
-          <input id="settingGCash" type="tel" placeholder="09XX XXX XXXX" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-      </div>
-    </div>
-
-    <button onclick="saveSettings()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg">
-      Save Settings
-    </button>
-
-    <div class="bg-white rounded-xl p-4 shadow-sm space-y-2">
-      <button onclick="viewEarningsHistory()" class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-lg flex items-center gap-3">
-        <i data-lucide="wallet" class="w-5 h-5 text-slate-600"></i>
-        <span class="text-sm font-semibold">Earnings History</span>
-      </button>
-      <button onclick="contactSupport()" class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-lg flex items-center gap-3">
-        <i data-lucide="help-circle" class="w-5 h-5 text-slate-600"></i>
-        <span class="text-sm font-semibold">Help & Support</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<div class="bottom-nav">
-  <button onclick="showMain()" class="nav-btn active" id="navHome">
-    <i data-lucide="home" class="w-6 h-6"></i>
-    <span>Home</span>
-  </button>
-  <button onclick="showSettings()" class="nav-btn" id="navSettings">
-    <i data-lucide="settings" class="w-6 h-6"></i>
-    <span>Settings</span>
-  </button>
-</div>
-
-<div id="toast" class="hidden fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3 rounded-xl shadow-2xl"></div>
-
-<script>
-const DB_KEY = 'dshop_orders';
-let isOnline = false;
-let myEarnings = 0;
-let myDeliveries = 0;
-const riderId = localStorage.getItem('riderId') || 'rider_' + Math.floor(Math.random()*10000);
-localStorage.setItem('riderId', riderId);
-
-function loadSettings() {
-  const settings = JSON.parse(localStorage.getItem('riderSettings') || '{}');
-  document.getElementById('settingName').value = settings.name || localStorage.getItem('riderName') || '';
-  document.getElementById('settingPhone').value = settings.phone || '';
-  document.getElementById('settingVehicleType').value = settings.vehicleType || 'motorcycle';
-  document.getElementById('settingPlate').value = settings.plate || '';
-  document.getElementById('settingGCash').value = settings.gcash || '';
-}
-
-function saveSettings() {
-  const settings = {
-    name: document.getElementById('settingName').value,
-    phone: document.getElementById('settingPhone').value,
-    vehicleType: document.getElementById('settingVehicleType').value,
-    plate: document.getElementById('settingPlate').value,
-    gcash: document.getElementById('settingGCash').value
-  };
-  localStorage.setItem('riderSettings', JSON.stringify(settings));
-  if(settings.name) localStorage.setItem('riderName', settings.name);
-  
-  if(db) {
-    db.collection('riders').doc(riderId).set({...settings, updatedAt: firebase.firestore.FieldValue.serverTimestamp()})
-      .then(() => toast('✅ Settings saved!'))
-      .catch(() => toast('✅ Settings saved locally'));
-  } else {
-    toast('✅ Settings saved!');
-  }
-}
-
-function showMain() {
-  document.getElementById('mainView').classList.remove('hidden');
-  document.getElementById('settingsView').classList.add('hidden');
-  document.getElementById('navHome').classList.add('active');
-  document.getElementById('navSettings').classList.remove('active');
-}
-
-function showSettings() {
-  document.getElementById('mainView').classList.add('hidden');
-  document.getElementById('settingsView').classList.remove('hidden');
-  document.getElementById('navHome').classList.remove('active');
-  document.getElementById('navSettings').classList.add('active');
-  loadSettings();
-  lucide.createIcons();
-}
-
-function viewEarningsHistory() {
-  alert('Earnings History\n\nToday: ₱' + myEarnings + '\nThis Week: ₱' + (myEarnings * 7) + '\nThis Month: ₱' + (myEarnings * 30));
-}
-
-function contactSupport() {
-  alert('Need help?\n\nEmail: support@dshop.ph\nPhone: 0917-D-SHOP\nHours: 8AM - 10PM');
-}
-
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.remove('hidden');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.add('hidden'), 3000);
-}
-
-document.getElementById('toggle').addEventListener('change', (e) => {
-  isOnline = e.target.checked;
-  document.getElementById('statusText').innerText = isOnline ? "ONLINE" : "OFFLINE";
-  document.getElementById('statusText').className = isOnline ? "text-sm font-bold text-green-600" : "text-sm font-bold text-slate-500";
-  
-  if(isOnline) {
-    loadJobs();
-  } else {
-    document.getElementById('jobs').innerHTML = '<p class="text-center text-slate-400 text-sm">Go online to see jobs</p>';
-  }
-});
-
-if (db) {
-  db.collection('orders').where('status', '==', 'new').onSnapshot((snapshot) => {
-    if(isOnline) {
-      const orders = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-      renderJobs(orders);
-    }
-  });
-} else {
-  window.addEventListener('storage', (e) => {
-    if(e.key === DB_KEY && isOnline) loadJobs();
-  });
-}
-
-function loadJobs() {
-  if(!db) {
-    const orders = JSON.parse(localStorage.getItem(DB_KEY) || '[]').filter(o => o.status === 'new');
-    renderJobs(orders);
-  }
-}
-
-function renderJobs(orders) {
-  const container = document.getElementById('jobs');
-  
-  if(orders.length === 0) {
-    container.innerHTML = '<p class="text-center text-slate-400 text-sm">No new orders</p>';
-    return;
-  }
-
-  container.innerHTML = orders.map(o => `
-    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-      <div class="flex justify-between mb-2">
-        <span class="font-bold">${o.id ? o.id.substring(0,8) : 'Order'}</span>
-        <span class="font-bold text-green-600">₱50 fee</span>
-      </div>
-      <p class="text-sm text-slate-600 mb-1">📍 ${o.customer}</p>
-      <p class="text-xs text-slate-500 mb-3">${o.address || 'No address'}</p>
-      <p class="text-xs text-slate-500 mb-3">${o.items.length} items • ₱${o.total}</p>
-      <button onclick="accept('${o.id}')" class="w-full bg-black text-white py-2 rounded-lg font-bold text-sm">Accept Job</button>
-    </div>
-  `).join('');
-  lucide.createIcons();
-}
-
-async function accept(id) {
-  if(!confirm('Accept this delivery job?')) return;
-  
-  const riderName = localStorage.getItem('riderName') || 'Rider';
-  
-  try {
-    if (db) {
-      await db.collection('orders').doc(id).update({
-        status: 'out',
-        rider: riderName,
-        riderId: riderId,
-        acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    } else {
-      const orders = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-      const order = orders.find(o => o.id === id);
-      if(order) {
-        order.status = 'out';
-        order.rider = riderName;
-        localStorage.setItem(DB_KEY, JSON.stringify(orders));
-      }
-    }
-    
-    myEarnings += 50;
-    myDeliveries++;
-    document.getElementById('earnings').innerText = '₱' + myEarnings;
-    document.getElementById('deliveryCount').innerText = myDeliveries;
-    
-    toast("✅ Job Accepted!");
-    showActiveDelivery(id);
-  } catch(error) {
-    alert("❌ Error: " + error.message);
-  }
-}
-
-function showActiveDelivery(id) {
-  document.getElementById('jobs').innerHTML = `
-    <div class="bg-green-50 border-2 border-green-500 p-4 rounded-xl">
-      <p class="font-bold text-green-700 mb-2">🚚 Active Delivery</p>
-      <p class="text-sm">Order: ${id.substring(0,8)}</p>
-      <button onclick="completeDelivery('${id}')" class="w-full mt-3 bg-green-600 text-white py-2 rounded-lg font-bold text-sm">Mark as Delivered</button>
-    </div>
-  `;
-}
-
-async function completeDelivery(id) {
-  if(!confirm('Mark as delivered?')) return;
-  
-  try {
-    if (db) {
-      await db.collection('orders').doc(id).update({
-        status: 'delivered',
-        deliveredAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    } else {
-      const orders = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-      const order = orders.find(o => o.id === id);
-      if(order) {
-        order.status = 'delivered';
-        localStorage.setItem(DB_KEY, JSON.stringify(orders));
-      }
-    }
-    
-    toast("✅ Delivery completed! +₱50");
-    document.getElementById('jobs').innerHTML = '<p class="text-center text-slate-400 text-sm">No new orders</p>';
-  } catch(error) {
-    alert("❌ Error: " + error.message);
-  }
-}
-
-loadSettings();
-lucide.createIcons();
-</script>
-</body>
-</html>
-```
-
----
-
