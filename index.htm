@@ -1,81 +1,35 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>D-Shop PH - Food Delivery</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #ff5a1f 0%, #ff8a3d 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .container {
-      background: white;
-      border-radius: 24px;
-      padding: 40px;
-      max-width: 450px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      text-align: center;
-    }
-    .logo {
-      width: 80px;
-      height: 80px;
-      background: linear-gradient(135deg, #ff5a1f, #ff8a3d);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      font-size: 40px;
-    }
-    h1 { color: #ff5a1f; font-size: 28px; margin-bottom: 8px; }
-    .subtitle { color: #64748b; margin-bottom: 30px; }
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 16px;
-      margin: 12px 0;
-      background: #ff5a1f;
-      color: white;
-      text-decoration: none;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 16px;
-      transition: all 0.2s;
-      border: none;
-      cursor: pointer;
-    }
-    .btn:hover { background: #e04a12; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255,90,31,0.3); }
-    .btn-secondary { background: #f1f5f9; color: #334155; }
-    .btn-secondary:hover { background: #e2e8f0; }
-    .footer { margin-top: 30px; font-size: 12px; color: #94a3b8; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-Shop PH - Food Delivery System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="container">
-    <div class="logo">🛒</div>
-    <h1>D-Shop PH</h1>
-    <p class="subtitle">Food Delivery System</p>
-    
-    <a href="customer.html" class="btn">👤 Customer App</a>
-    <a href="rider.html" class="btn">🛵 Rider App</a>
-    <a href="admin.html" class="btn btn-secondary">📊 Admin Dashboard</a>
-    
-    <div class="footer">
-      <p>© 2026 D-Shop PH</p>
-      <p style="margin-top: 8px;">Complete Food Delivery Solution</p>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="text-center max-w-2xl">
+        <div class="text-6xl mb-4">🛒</div>
+        <h1 class="text-4xl font-bold mb-2">D-Shop PH</h1>
+        <p class="text-gray-400 mb-8">Complete Food Delivery Solution</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <a href="customer.html" class="bg-blue-600 hover:bg-blue-700 p-6 rounded-xl transition transform hover:scale-105">
+                <div class="text-3xl mb-2">👤</div>
+                <h2 class="text-xl font-bold">Customer App</h2>
+                <p class="text-sm text-blue-200 mt-1">Order food & track delivery</p>
+            </a>
+            <a href="rider.html" class="bg-green-600 hover:bg-green-700 p-6 rounded-xl transition transform hover:scale-105">
+                <div class="text-3xl mb-2">🛵</div>
+                <h2 class="text-xl font-bold">Rider App</h2>
+                <p class="text-sm text-green-200 mt-1">Accept jobs & earn</p>
+            </a>
+            <a href="admin.html" class="bg-purple-600 hover:bg-purple-700 p-6 rounded-xl transition transform hover:scale-105">
+                <div class="text-3xl mb-2">📊</div>
+                <h2 class="text-xl font-bold">Admin Dashboard</h2>
+                <p class="text-sm text-purple-200 mt-1">Manage store & analytics</p>
+            </a>
+        </div>
     </div>
-  </div>
+    <footer class="mt-12 text-gray-500 text-sm">© 2026 D-Shop PH</footer>
 </body>
 </html>
-```
-
----
