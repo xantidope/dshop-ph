@@ -2,34 +2,62 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="D-Shop PH">
+    <meta name="theme-color" content="#111827">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/192/shop.png">
     <title>D-Shop PH - Food Delivery System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .safe-top { padding-top: env(safe-area-inset-top, 20px); }
+        .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+        .card-hover:active { transform: scale(0.95); }
+    </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="text-center max-w-2xl">
-        <div class="text-6xl mb-4">🛒</div>
-        <h1 class="text-4xl font-bold mb-2">D-Shop PH</h1>
-        <p class="text-gray-400 mb-8">Complete Food Delivery Solution</p>
+    <div class="text-center max-w-2xl w-full">
+        <div class="text-7xl mb-4 animate-bounce">🛒</div>
+        <h1 class="text-5xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">D-Shop PH</h1>
+        <p class="text-gray-400 mb-12 text-lg">Complete Food Delivery Solution</p>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <a href="customer.html" class="bg-blue-600 hover:bg-blue-700 p-6 rounded-xl transition transform hover:scale-105">
-                <div class="text-3xl mb-2">👤</div>
-                <h2 class="text-xl font-bold">Customer App</h2>
-                <p class="text-sm text-blue-200 mt-1">Order food & track delivery</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <a href="customer.html" class="card-hover bg-gradient-to-br from-blue-600 to-blue-700 p-8 rounded-2xl shadow-2xl block">
+                <div class="text-5xl mb-3">👤</div>
+                <h2 class="text-2xl font-bold mb-2">Customer App</h2>
+                <p class="text-blue-200 text-sm">Order food & track delivery in real-time</p>
             </a>
-            <a href="rider.html" class="bg-green-600 hover:bg-green-700 p-6 rounded-xl transition transform hover:scale-105">
-                <div class="text-3xl mb-2">🛵</div>
-                <h2 class="text-xl font-bold">Rider App</h2>
-                <p class="text-sm text-green-200 mt-1">Accept jobs & earn</p>
+            <a href="rider.html" class="card-hover bg-gradient-to-br from-green-600 to-green-700 p-8 rounded-2xl shadow-2xl block">
+                <div class="text-5xl mb-3">🛵</div>
+                <h2 class="text-2xl font-bold mb-2">Rider App</h2>
+                <p class="text-green-200 text-sm">Accept jobs, deliver orders & earn</p>
             </a>
-            <a href="admin.html" class="bg-purple-600 hover:bg-purple-700 p-6 rounded-xl transition transform hover:scale-105">
-                <div class="text-3xl mb-2">📊</div>
-                <h2 class="text-xl font-bold">Admin Dashboard</h2>
-                <p class="text-sm text-purple-200 mt-1">Manage store & analytics</p>
+            <a href="admin.html" class="card-hover bg-gradient-to-br from-purple-600 to-purple-700 p-8 rounded-2xl shadow-2xl block">
+                <div class="text-5xl mb-3">📊</div>
+                <h2 class="text-2xl font-bold mb-2">Admin Dashboard</h2>
+                <p class="text-purple-200 text-sm">Manage store, riders & analytics</p>
             </a>
         </div>
+
+        <div class="bg-gray-800 p-6 rounded-2xl mb-8">
+            <h3 class="font-bold text-lg mb-3">📱 Install as Mobile App</h3>
+            <p class="text-gray-400 text-sm mb-4">Get the full app experience on your phone!</p>
+            <div class="text-left text-sm text-gray-300 space-y-2">
+                <p><strong class="text-blue-400">iPhone:</strong> Safari → Share → Add to Home Screen</p>
+                <p><strong class="text-green-400">Android:</strong> Chrome → ⋮ → Add to Home Screen</p>
+            </div>
+        </div>
     </div>
-    <footer class="mt-12 text-gray-500 text-sm">© 2026 D-Shop PH</footer>
+    <footer class="text-gray-500 text-sm mt-8">© 2026 D-Shop PH | Powered by Appwrite</footer>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 </body>
 </html>
