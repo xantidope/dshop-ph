@@ -1,7 +1,7 @@
 {
-    "name": "D-Shop PH",
-    "short_name": "D-Shop",
-    "description": "Food Delivery System - Order, Deliver, Manage",
+    "name": "D-Shop PH - Food Delivery System",
+    "short_name": "D-Shop PH",
+    "description": "Complete Food Delivery Solution - Order, Deliver, Manage",
     "start_url": "/index.html",
     "display": "standalone",
     "background_color": "#111827",
