@@ -41,8 +41,6 @@
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
-
-    <!-- Header -->
     <header class="safe-top bg-green-600 text-white p-4 sticky top-0 z-40 shadow-lg">
         <div class="flex items-center justify-between">
             <a href="index.html" class="text-white/80 text-sm">← Home</a>
@@ -51,9 +49,7 @@
         </div>
     </header>
 
-    <!-- ===== HOME PAGE ===== -->
     <main id="page-home" class="p-4">
-        <!-- Earnings Card -->
         <div class="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-6 rounded-2xl shadow-lg mb-4">
             <p class="text-green-100 text-sm">Today's Earnings</p>
             <p class="text-4xl font-bold mt-1" id="rider-earnings">₱0</p>
@@ -63,12 +59,10 @@
             </div>
         </div>
 
-        <!-- Go Online Toggle -->
         <button onclick="toggleOnline()" id="toggle-btn" class="w-full py-5 rounded-2xl font-bold text-lg shadow-lg mb-6 transition-all active:scale-95 bg-gray-800 text-white">
             🟢 Go Online
         </button>
 
-        <!-- Available Jobs -->
         <section>
             <div class="flex justify-between items-center mb-3">
                 <h2 class="text-lg font-bold">Available Jobs</h2>
@@ -82,20 +76,15 @@
             </div>
         </section>
 
-        <!-- Active Delivery -->
         <section id="active-delivery" class="hidden mt-6">
             <h2 class="text-lg font-bold mb-3">🚀 Active Delivery</h2>
-            <div id="active-delivery-card" class="bg-blue-50 border-2 border-blue-300 p-4 rounded-2xl">
-                <!-- Filled dynamically -->
-            </div>
+            <div id="active-delivery-card" class="bg-blue-50 border-2 border-blue-300 p-4 rounded-2xl"></div>
         </section>
     </main>
 
-    <!-- ===== SETTINGS PAGE ===== -->
     <main id="page-settings" class="p-4 hidden">
         <h2 class="text-xl font-bold mb-4">Settings</h2>
 
-        <!-- Profile Section -->
         <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
             <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">👤 Profile</h3>
             <input id="set-name" type="text" placeholder="Full Name" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -103,7 +92,6 @@
             <input id="set-email" type="email" placeholder="Email" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500">
         </div>
 
-        <!-- Vehicle Section -->
         <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
             <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">🏍️ Vehicle Information</h3>
             <select id="set-vehicle" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -115,7 +103,6 @@
             <input id="set-model" type="text" placeholder="Vehicle Model" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500">
         </div>
 
-        <!-- Payment Section -->
         <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
             <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">💳 Payment Method</h3>
             <input id="set-gcash" type="text" placeholder="GCash Number" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -130,7 +117,6 @@
             <input id="set-bank-acct" type="text" placeholder="Bank Account Number" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500">
         </div>
 
-        <!-- Delivery Preferences -->
         <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
             <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">📍 Delivery Preferences</h3>
             <div class="mb-3">
@@ -146,7 +132,6 @@
             </div>
         </div>
 
-        <!-- Notifications -->
         <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
             <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">🔔 Notifications</h3>
             <div class="flex justify-between items-center py-2 border-b">
@@ -167,7 +152,6 @@
 
         <button onclick="saveSettings()" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg active:bg-green-700 transition mb-4">Save Settings</button>
 
-        <!-- Extra Links -->
         <div class="space-y-2 mb-8">
             <button class="w-full bg-white p-4 rounded-xl shadow-sm text-left text-sm font-medium">📊 Earnings History</button>
             <button class="w-full bg-white p-4 rounded-xl shadow-sm text-left text-sm font-medium">📈 Performance Stats</button>
@@ -178,7 +162,6 @@
         <p class="text-center text-xs text-gray-400 pb-4">D-Shop Rider App v1.0<br>© 2026 D-Shop PH</p>
     </main>
 
-    <!-- Job Accept Modal -->
     <div id="job-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeJobModal()">
         <div class="modal-sheet slide-up p-6">
             <h3 class="text-lg font-bold mb-1">📦 New Order</h3>
@@ -194,7 +177,6 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation -->
     <nav class="bottom-nav safe-bottom">
         <div class="flex max-w-lg mx-auto">
             <button onclick="switchPage('home')" class="nav-item active" id="nav-home">
@@ -209,9 +191,6 @@
     </nav>
 
     <script>
-        // ==========================================
-        // ⚙️ APPWRITE CONFIGURATION
-        // ==========================================
         const client = new Appwrite.Client();
         client.setEndpoint('https://sgp.cloud.appwrite.io/v1').setProject('6a5099d00031731cad59');
         const databases = new Appwrite.Databases(client);
@@ -227,14 +206,10 @@
         let pendingJobId = null;
         let riderFee = 30;
 
-        // ==========================================
-        // 🔧 PWA: Register Service Worker
-        // ==========================================
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
 
-        // Load rider fee from settings
         async function loadRiderFee() {
             try {
                 const s = await databases.getDocument(DB_ID, 'settings', SETTINGS_DOC_ID);
@@ -244,9 +219,6 @@
         }
         loadRiderFee();
 
-        // ==========================================
-        // 🟢 TOGGLE ONLINE / OFFLINE
-        // ==========================================
         async function toggleOnline() {
             isOnline = !isOnline;
             const badge = document.getElementById('status-badge');
@@ -270,9 +242,6 @@
             }
         }
 
-        // ==========================================
-        // 📦 LOAD & RENDER JOBS
-        // ==========================================
         async function loadJobs() {
             if (!isOnline) return;
             try {
@@ -308,9 +277,6 @@
             `).join('');
         }
 
-        // ==========================================
-        // 📋 JOB MODAL
-        // ==========================================
         function showJobModal(orderId, customer, total, address) {
             pendingJobId = orderId;
             document.getElementById('modal-order-id').innerText = `#${orderId.substring(0, 8)}`;
@@ -363,14 +329,10 @@
             } catch (err) { console.error(err); showToast('❌ Error completing delivery'); }
         }
 
-        // ==========================================
-        // 🚨 REALTIME JOB ALERTS
-        // ==========================================
         client.subscribe(`databases.${DB_ID}.collections.orders.documents`, (res) => {
             const order = res.payload;
             if (isOnline && (order.status === 'pending' || order.status === 'preparing')) {
                 loadJobs();
-                // Vibrate if enabled
                 if (document.getElementById('toggle-vibrate').classList.contains('active') && navigator.vibrate) {
                     navigator.vibrate([200, 100, 200]);
                 }
@@ -384,22 +346,15 @@
             }
         });
 
-        // ==========================================
-        // ⚙️ SETTINGS
-        // ==========================================
         function saveSettings() {
             localStorage.setItem('rider_name', document.getElementById('set-name').value);
             localStorage.setItem('rider_phone', document.getElementById('set-phone').value);
             showToast('✅ Settings saved!');
         }
 
-        // Load saved settings
         document.getElementById('set-name').value = localStorage.getItem('rider_name') || '';
         document.getElementById('set-phone').value = localStorage.getItem('rider_phone') || '';
 
-        // ==========================================
-        // 🧭 NAVIGATION
-        // ==========================================
         function switchPage(page) {
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(`nav-${page}`).classList.add('active');
