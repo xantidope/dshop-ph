@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#111827">
+    <link rel="manifest" href="manifest.json">
+    <title>D-Shop Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .sidebar-link.active { background-color: #1f2937; color: #60a5fa; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: white; border-radius: 16px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        @media (max-width: 768px) {
+            .desktop-sidebar { display: none; }
+            .mobile-header { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+            .mobile-header { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex min-h-screen">
+
+    <!-- Desktop Sidebar -->
+    <aside class="desktop-sidebar w-64 bg-gray-900 text-white p-6 flex flex-col fixed h-full">
+        <h1 class="text-2xl font-bold mb-2 text-blue-400">📊 D-Shop Admin</h1>
+        <p class="text-gray-400 text-sm mb-8">Management Panel</p>
+        <nav class="space-y-2 flex-1">
+            <button onclick="switchTab('dashboard')" class="sidebar-link active w-full text-left p-3 rounded-lg hover:bg-gray-800 flex items-center gap-3">📈 Dashboard</button>
+            <button onclick="switchTab('orders')" class="sidebar-link w-full text-left p-3 rounded-lg hover:bg-gray-800 flex items-center gap-3">📦 Orders <span id="badge-orders" class="ml-auto bg-red-500 text-xs px-2 py-0.5 rounded-full">0</span></button>
+            <button onclick="switchTab('menu')" class="sidebar-link w-full text-left p-3 rounded-lg hover:bg-gray-800 flex items-center gap-3">🍔 Menu</button>
+            <button onclick="switchTab('riders')" class="sidebar-link w-full text-left p-3 rounded-lg hover:bg-gray-800 flex items-center gap-3">🛵 Riders <span id="badge-riders" class="ml-auto bg-green-500 text-xs px-2 py-0.5 rounded-full">0</span></button>
+            <button onclick="switchTab('analytics')" class="sidebar-link w-full text-left p-3 rounded-lg hover:bg-gray-800 flex items-center gap-3">📊 Analytics</button>
+            <button onclick="switchTab('settings')" class="sidebar-link w-full text-left p-3 rounded-lg hover:bg-gray-800 flex items-center gap-3">⚙️ Settings</button>
+        </nav>
+        <a href="index.html" class="mt-auto text-gray-400 text-sm hover:text-white">← Back to Home</a>
+    </aside>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header hidden fixed top-0 left-0 right-0 bg-gray-900 text-white p-4 z-50 items-center justify-between shadow-lg">
+        <h1 class="text-lg font-bold text-blue-400">📊 D-Shop Admin</h1>
+        <select onchange="switchTab(this.value)" class="bg-gray-800 text-white text-sm p-2 rounded-lg border-none">
+            <option value="dashboard">Dashboard</option>
+            <option value="orders">Orders</option>
+            <option value="menu">Menu</option>
+            <option value="riders">Riders</option>
+            <option value="analytics">Analytics</option>
+            <option value="settings">Settings</option>
+        </select>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4 md:p-8 mt-16 md:mt-0 md:ml-64 overflow-y-auto">
+        
+        <!-- ================= DASHBOARD TAB ================= -->
+        <section id="tab-dashboard" class="tab-content active">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Dashboard Overview</h2>
+                <button class="bg-white px-4 py-2 rounded-lg shadow text-sm hover:bg-gray-50">Export Data</button>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm">
+                    <p class="text-gray-500 text-xs md:text-sm">Total Revenue</p>
+                    <p class="text-xl md:text-2xl font-bold text-green-600" id="stat-revenue">₱0</p>
+                    <p class="text-xs text-gray-400 mt-1">↑ Live tracking</p>
+                </div>
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm">
+                    <p class="text-gray-500 text-xs md:text-sm">Total Orders</p>
+                    <p class="text-xl md:text-2xl font-bold text-blue-600" id="stat-orders">0</p>
+                    <p class="text-xs text-gray-400 mt-1"><span id="stat-pending">0</span> pending</p>
+                </div>
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm">
+                    <p class="text-gray-500 text-xs md:text-sm">Active Riders</p>
+                    <p class="text-xl md:text-2xl font-bold text-purple-600" id="stat-riders">0</p>
+                    <p class="text-xs text-gray-400 mt-1">of <span id="stat-total-riders">0</span> total</p>
+                </div>
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm">
+                    <p class="text-gray-500 text-xs md:text-sm">Menu Items</p>
+                    <p class="text-xl md:text-2xl font-bold text-orange-600" id="stat-menu">0</p>
+                    <p class="text-xs text-gray-400 mt-1">Available</p>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold mb-4">Recent Orders</h3>
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50"><tr><th class="p-3 text-xs font-semibold text-gray-500">Customer</th><th class="p-3 text-xs font-semibold text-gray-500">Total</th><th class="p-3 text-xs font-semibold text-gray-500">Status</th><th class="p-3 text-xs font-semibold text-gray-500">Action</th></tr></thead>
+                        <tbody id="recent-orders-body" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= ORDERS TAB ================= -->
+        <section id="tab-orders" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">Order Management</h2>
+            <div class="flex gap-2 overflow-x-auto mb-4 pb-2">
+                <button onclick="filterOrders('all')" class="order-filter bg-blue-600 text-white px-4 py-2 rounded-full text-sm whitespace-nowrap">All</button>
+                <button onclick="filterOrders('pending')" class="order-filter bg-white text-gray-600 px-4 py-2 rounded-full text-sm whitespace-nowrap">New</button>
+                <button onclick="filterOrders('preparing')" class="order-filter bg-white text-gray-600 px-4 py-2 rounded-full text-sm whitespace-nowrap">Preparing</button>
+                <button onclick="filterOrders('out_for_delivery')" class="order-filter bg-white text-gray-600 px-4 py-2 rounded-full text-sm whitespace-nowrap">Out for Delivery</button>
+                <button onclick="filterOrders('delivered')" class="order-filter bg-white text-gray-600 px-4 py-2 rounded-full text-sm whitespace-nowrap">Delivered</button>
+            </div>
+            <div id="orders-list" class="space-y-3"></div>
+        </section>
+
+        <!-- ================= MENU TAB ================= -->
+        <section id="tab-menu" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">Menu Management</h2>
+            <button onclick="openModal('modal-add-menu')" class="mb-6 bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700">+ Add New Item</button>
+            <div id="menu-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </section>
+
+        <!-- ================= RIDERS TAB ================= -->
+        <section id="tab-riders" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">Rider Management</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl shadow-sm"><p class="text-xs text-gray-500">Total Riders</p><p class="text-xl font-bold" id="rider-stat-total">0</p></div>
+                <div class="bg-white p-4 rounded-xl shadow-sm"><p class="text-xs text-gray-500">Online Now</p><p class="text-xl font-bold text-green-600" id="rider-stat-online">0</p></div>
+                <div class="bg-white p-4 rounded-xl shadow-sm"><p class="text-xs text-gray-500">Total Deliveries</p><p class="text-xl font-bold text-blue-600" id="rider-stat-deliveries">0</p></div>
+                <div class="bg-white p-4 rounded-xl shadow-sm"><p class="text-xs text-gray-500">Total Earnings</p><p class="text-xl font-bold text-purple-600" id="rider-stat-earnings">₱0</p></div>
+            </div>
+            <button onclick="openModal('modal-add-rider')" class="mb-6 bg-green-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-700">+ Add Rider</button>
+            <div id="riders-list" class="space-y-3"></div>
+        </section>
+
+        <!-- ================= ANALYTICS TAB ================= -->
+        <section id="tab-analytics" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">Analytics & Reports</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm h-64 flex items-center justify-center text-gray-400">📊 Orders by Hour Chart Placeholder</div>
+                <div class="bg-white p-6 rounded-xl shadow-sm h-64 flex items-center justify-center text-gray-400">🥧 Order Status Distribution Placeholder</div>
+                <div class="bg-white p-6 rounded-xl shadow-sm h-64 flex items-center justify-center text-gray-400">🏆 Rider Performance Placeholder</div>
+                <div class="bg-white p-6 rounded-xl shadow-sm h-64 flex items-center justify-center text-gray-400">💰 Revenue by Category Placeholder</div>
+            </div>
+        </section>
+
+        <!-- ================= SETTINGS TAB ================= -->
+        <section id="tab-settings" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">Business Settings</h2>
+            <div class="bg-white p-6 rounded-xl shadow-sm max-w-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div><label class="block text-sm font-bold mb-1">Delivery Fee (₱)</label><input id="set-delivery" type="number" class="w-full p-3 border rounded-lg"></div>
+                    <div><label class="block text-sm font-bold mb-1">Rider Fee per Delivery (₱)</label><input id="set-rider" type="number" class="w-full p-3 border rounded-lg"></div>
+                    <div><label class="block text-sm font-bold mb-1">Tax Rate (%)</label><input id="set-tax" type="number" step="0.01" class="w-full p-3 border rounded-lg"></div>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold mb-2">Business Hours</label>
+                    <div class="flex gap-4 items-center">
+                        <input id="set-hours-start" type="time" class="w-full p-3 border rounded-lg">
+                        <span class="font-bold">to</span>
+                        <input id="set-hours-end" type="time" class="w-full p-3 border rounded-lg">
+                    </div>
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">Save Settings</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- ================= MODALS ================= -->
+    <!-- Order Details Modal -->
+    <div id="modal-order-details" class="modal-overlay hidden" onclick="if(event.target===this)closeModal('modal-order-details')">
+        <div class="modal-box p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Order Details</h3>
+                <button onclick="closeModal('modal-order-details')" class="text-2xl text-gray-400">&times;</button>
+            </div>
+            <div id="order-details-content" class="space-y-3 text-sm"></div>
+            <div class="mt-6 pt-4 border-t">
+                <label class="block text-sm font-bold mb-2">Update Status</label>
+                <select id="order-status-select" class="w-full p-3 border rounded-lg mb-3">
+                    <option value="pending">Pending</option>
+                    <option value="preparing">Preparing</option>
+                    <option value="out_for_delivery">Out for Delivery</option>
+                    <option value="delivered">Delivered</option>
+                </select>
+                <button onclick="updateOrderStatus()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">Update Status</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Menu Item Modal -->
+    <div id="modal-add-menu" class="modal-overlay hidden" onclick="if(event.target===this)closeModal('modal-add-menu')">
+        <div class="modal-box p-6">
+            <h3 class="text-xl font-bold mb-4">Add Menu Item</h3>
+            <input id="new-name" type="text" placeholder="Name" class="w-full p-3 border rounded-lg mb-3">
+            <input id="new-price" type="number" placeholder="Price (₱)" class="w-full p-3 border rounded-lg mb-3">
+            <input id="new-cat" type="text" placeholder="Category" class="w-full p-3 border rounded-lg mb-3">
+            <input id="new-img" type="text" placeholder="Image URL" class="w-full p-3 border rounded-lg mb-3">
+            <textarea id="new-desc" placeholder="Description" rows="3" class="w-full p-3 border rounded-lg mb-4"></textarea>
+            <button onclick="addMenuItem()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">Save Item</button>
+        </div>
+    </div>
+
+    <!-- Add Rider Modal -->
+    <div id="modal-add-rider" class="modal-overlay hidden" onclick="if(event.target===this)closeModal('modal-add-rider')">
+        <div class="modal-box p-6">
+            <h3 class="text-xl font-bold mb-4">Add Rider</h3>
+            <input id="rider-name" type="text" placeholder="Full Name" class="w-full p-3 border rounded-lg mb-3">
+            <input id="rider-phone" type="tel" placeholder="Phone Number" class="w-full p-3 border rounded-lg mb-3">
+            <select id="rider-vehicle" class="w-full p-3 border rounded-lg mb-3">
+                <option value="Motorcycle">Motorcycle</option><option value="Bicycle">Bicycle</option><option value="Car">Car</option>
+            </select>
+            <input id="rider-plate" type="text" placeholder="Plate Number" class="w-full p-3 border rounded-lg mb-3">
+            <input id="rider-gcash" type="text" placeholder="GCash Number" class="w-full p-3 border rounded-lg mb-4">
+            <button onclick="addRider()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold">Add Rider</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ⚙️ APPWRITE CONFIGURATION
+        // ==========================================
+        const client = new Appwrite.Client();
+        client.setEndpoint('https://sgp.cloud.appwrite.io/v1').setProject('6a5099d00031731cad59');
+        const databases = new Appwrite.Databases(client);
+        const DB_ID = '6a509abf002aed29dd40';
+        const SETTINGS_DOC_ID = 'YOUR_SETTINGS_DOC_ID'; // REPLACE THIS!
+
+        let allOrders = [];
+        let currentOrderId = null;
+
+        // ==========================================
+        // 🧭 TAB NAVIGATION
+        // ==========================================
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            const activeLink = document.querySelector(`.sidebar-link[onclick*="'${tabName}'"]`);
+            if(activeLink) activeLink.classList.add('active');
+
+            if(tabName === 'dashboard') loadDashboard();
+            if(tabName === 'orders') renderOrders();
+            if(tabName === 'menu') loadMenuList();
+            if(tabName === 'riders') loadRidersList();
+            if(tabName === 'settings') loadSettings();
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // ==========================================
+        // 📊 DASHBOARD & REALTIME
+        // ==========================================
+        async function loadDashboard() {
+            try {
+                const [ordersRes, menuRes, ridersRes] = await Promise.all([
+                    databases.listDocuments(DB_ID, 'orders'),
+                    databases.listDocuments(DB_ID, 'menu_items'),
+                    databases.listDocuments(DB_ID, 'riders')
+                ]);
+                
+                allOrders = ordersRes.documents;
+                let revenue = 0, pending = 0;
+                allOrders.forEach(o => {
+                    if(o.status === 'delivered') revenue += o.total_amount;
+                    if(o.status === 'pending') pending++;
+                });
+
+                document.getElementById('stat-revenue').innerText = `₱${revenue}`;
+                document.getElementById('stat-orders').innerText = ordersRes.total;
+                document.getElementById('stat-pending').innerText = pending;
+                document.getElementById('stat-menu').innerText = menuRes.total;
+                document.getElementById('badge-orders').innerText = pending;
+                
+                const onlineRiders = ridersRes.documents.filter(r => r.status === 'online').length;
+                document.getElementById('stat-riders').innerText = onlineRiders;
+                document.getElementById('stat-total-riders').innerText = ridersRes.total;
+                document.getElementById('badge-riders').innerText = onlineRiders;
+
+                renderRecentOrders();
+            } catch (err) { console.error("Dashboard Error:", err); }
+        }
+
+        function renderRecentOrders() {
+            const tbody = document.getElementById('recent-orders-body');
+            tbody.innerHTML = allOrders.slice(0, 5).map(o => `
+                <tr class="hover:bg-gray-50 cursor-pointer" onclick="showOrderDetails('${o.$id}')">
+                    <td class="p-3 font-medium">${o.customer_name}</td>
+                    <td class="p-3">₱${o.total_amount}</td>
+                    <td class="p-3"><span class="px-2 py-1 bg-gray-100 rounded-full text-xs">${o.status.replace(/_/g, ' ')}</span></td>
+                    <td class="p-3 text-blue-600 text-sm font-bold">View →</td>
+                </tr>
+            `).join('');
+        }
+
+        // Realtime listener
+        client.subscribe(`databases.${DB_ID}.collections.orders.documents`, () => {
+            console.log("🔔 Order updated live!");
+            loadDashboard();
+        });
+
+        // ==========================================
+        // 📦 ORDERS MANAGEMENT
+        // ==========================================
+        function filterOrders(status) {
+            document.querySelectorAll('.order-filter').forEach(b => { b.className = b.className.replace('bg-blue-600 text-white', 'bg-white text-gray-600'); });
+            event.target.className = event.target.className.replace('bg-white text-gray-600', 'bg-blue-600 text-white');
+            renderOrders(status === 'all' ? null : status);
+        }
+
+        function renderOrders(filterStatus = null) {
+            const list = document.getElementById('orders-list');
+            const filtered = filterStatus ? allOrders.filter(o => o.status === filterStatus) : allOrders;
+            
+            if(filtered.length === 0) {
+                list.innerHTML = '<p class="text-center text-gray-400 py-8">No orders found.</p>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(o => `
+                <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center cursor-pointer hover:bg-gray-50" onclick="showOrderDetails('${o.$id}')">
+                    <div>
+                        <p class="font-bold">#${o.$id.substring(0, 8)}</p>
+                        <p class="text-sm text-gray-500">${o.customer_name} • ₱${o.total_amount}</p>
+                    </div>
+                    <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium">${o.status.replace(/_/g, ' ')}</span>
+                </div>
+            `).join('');
+        }
+
+        function showOrderDetails(orderId) {
+            currentOrderId = orderId;
+            const order = allOrders.find(o => o.$id === orderId);
+            if(!order) return;
+
+            document.getElementById('order-status-select').value = order.status;
+            document.getElementById('order-details-content').innerHTML = `
+                <p><strong>Customer:</strong> ${order.customer_name}</p>
+                <p><strong>Address:</strong> ${order.delivery_address}</p>
+                <p><strong>Total:</strong> ₱${order.total_amount}</p>
+                <p><strong>Items:</strong></p>
+                <ul class="list-disc pl-5">
+                    ${JSON.parse(order.items_json || '[]').map(i => `<li>${i.name} x${i.qty} (₱${i.price * i.qty})</li>`).join('')}
+                </ul>
+            `;
+            openModal('modal-order-details');
+        }
+
+        async function updateOrderStatus() {
+            const newStatus = document.getElementById('order-status-select').value;
+            try {
+                await databases.updateDocument(DB_ID, 'orders', currentOrderId, { status: newStatus });
+                closeModal('modal-order-details');
+                alert('Order status updated!');
+                loadDashboard();
+            } catch (err) { console.error(err); alert('Error updating status'); }
+        }
+
+        // ==========================================
+        // 🍔 MENU MANAGEMENT
+        // ==========================================
+        async function loadMenuList() {
+            try {
+                const res = await databases.listDocuments(DB_ID, 'menu_items');
+                const list = document.getElementById('menu-list');
+                list.innerHTML = res.documents.map(item => `
+                    <div class="bg-white p-4 rounded-xl shadow-sm">
+                        <img src="${item.image_url || 'https://via.placeholder.com/150'}" class="w-full h-32 object-cover rounded-lg mb-3">
+                        <h4 class="font-bold">${item.name}</h4>
+                        <p class="text-sm text-gray-500">${item.category} • ₱${item.price}</p>
+                        <button onclick="deleteMenuItem('${item.$id}')" class="mt-3 text-red-500 text-sm font-bold">Delete</button>
+                    </div>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function addMenuItem() {
+            const name = document.getElementById('new-name').value;
+            const price = parseFloat(document.getElementById('new-price').value);
+            if(!name || !price) return alert('Fill name and price!');
+
+            try {
+                await databases.createDocument(DB_ID, 'menu_items', Appwrite.ID.unique(), {
+                    name, price,
+                    category: document.getElementById('new-cat').value,
+                    description: document.getElementById('new-desc').value,
+                    image_url: document.getElementById('new-img').value,
+                    is_available: true
+                });
+                closeModal('modal-add-menu');
+                alert('Item added!');
+                loadMenuList();
+            } catch (err) { console.error(err); alert('Error adding item'); }
+        }
+
+        async function deleteMenuItem(id) {
+            if(!confirm('Delete this item?')) return;
+            try {
+                await databases.deleteDocument(DB_ID, 'menu_items', id);
+                loadMenuList();
+            } catch (err) { console.error(err); }
+        }
+
+        // ==========================================
+        // 🛵 RIDERS MANAGEMENT
+        // ==========================================
+        async function loadRidersList() {
+            try {
+                const res = await databases.listDocuments(DB_ID, 'riders');
+                const riders = res.documents;
+                
+                document.getElementById('rider-stat-total').innerText = riders.length;
+                document.getElementById('rider-stat-online').innerText = riders.filter(r => r.status === 'online').length;
+                document.getElementById('rider-stat-deliveries').innerText = riders.reduce((sum, r) => sum + (r.deliveries || 0), 0);
+                document.getElementById('rider-stat-earnings').innerText = `₱${riders.reduce((sum, r) => sum + (r.earnings || 0), 0)}`;
+
+                const list = document.getElementById('riders-list');
+                list.innerHTML = riders.map(r => `
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center">
+                        <div>
+                            <p class="font-bold">${r.full_name}</p>
+                            <p class="text-sm text-gray-500">${r.vehicle_type} • ${r.phone}</p>
+                            <p class="text-xs mt-1 ${r.status === 'online' ? 'text-green-600' : 'text-gray-400'}">${r.status.toUpperCase()}</p>
+                        </div>
+                        <button onclick="deleteRider('${r.$id}')" class="text-red-500 text-sm font-bold">Delete</button>
+                    </div>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function addRider() {
+            const name = document.getElementById('rider-name').value;
+            const phone = document.getElementById('rider-phone').value;
+            if(!name || !phone) return alert('Fill name and phone!');
+
+            try {
+                await databases.createDocument(DB_ID, 'riders', Appwrite.ID.unique(), {
+                    full_name: name,
+                    phone: phone,
+                    vehicle_type: document.getElementById('rider-vehicle').value,
+                    plate_number: document.getElementById('rider-plate').value,
+                    gcash_number: document.getElementById('rider-gcash').value,
+                    status: 'offline',
+                    earnings: 0,
+                    deliveries: 0
+                });
+                closeModal('modal-add-rider');
+                alert('Rider added!');
+                loadRidersList();
+            } catch (err) { console.error(err); alert('Error adding rider'); }
+        }
+
+        async function deleteRider(id) {
+            if(!confirm('Delete this rider?')) return;
+            try {
+                await databases.deleteDocument(DB_ID, 'riders', id);
+                loadRidersList();
+            } catch (err) { console.error(err); }
+        }
+
+        // ==========================================
+        // ⚙️ SETTINGS MANAGEMENT
+        // ==========================================
+        async function loadSettings() {
+            try {
+                const s = await databases.getDocument(DB_ID, 'settings', SETTINGS_DOC_ID);
+                document.getElementById('set-delivery').value = s.delivery_fee;
+                document.getElementById('set-rider').value = s.rider_fee;
+                document.getElementById('set-tax').value = s.tax_rate || 0;
+                document.getElementById('set-hours-start').value = s.business_hours_start || '08:00';
+                document.getElementById('set-hours-end').value = s.business_hours_end || '22:00';
+            } catch (err) { console.error("Settings Error:", err); }
+        }
+
+        async function saveSettings() {
+            try {
+                await databases.updateDocument(DB_ID, 'settings', SETTINGS_DOC_ID, {
+                    delivery_fee: parseFloat(document.getElementById('set-delivery').value),
+                    rider_fee: parseFloat(document.getElementById('set-rider').value),
+                    tax_rate: parseFloat(document.getElementById('set-tax').value),
+                    business_hours_start: document.getElementById('set-hours-start').value,
+                    business_hours_end: document.getElementById('set-hours-end').value
+                });
+                alert('✅ Settings saved!');
+            } catch (err) { console.error(err); alert('Error saving settings'); }
+        }
+
+        // Initialize Dashboard on load
+        loadDashboard();
+    </script>
+</body>
+</html>
