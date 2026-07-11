@@ -1,478 +1,421 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<meta name="theme-color" content="#0f172a">
-<title>D-Shop Rider</title>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<style>
-  *{font-family:system-ui,sans-serif;}
-  body{background:#f8fafc;}
-  .loading { display: flex; align-items: center; justify-content: center; padding: 2rem; }
-  .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0f172a; border-radius: 50%; animation: spin 1s linear infinite; }
-  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-around; padding: 0.75rem 0; z-index: 50; }
-  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.5rem; color: #64748b; font-size: 0.75rem; font-weight: 600; }
-  .nav-btn.active { color: #0f172a; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="D-Shop Rider">
+    <meta name="theme-color" content="#16a34a">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/192/shop.png">
+    <title>D-Shop Rider</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overscroll-behavior: none; padding-bottom: 80px; }
+        .safe-top { padding-top: env(safe-area-inset-top, 20px); }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; z-index: 50; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 0; font-size: 11px; color: #9ca3af; }
+        .nav-item.active { color: #16a34a; }
+        .toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 12px 24px; border-radius: 12px; z-index: 100; font-size: 14px; animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+        .toggle-switch { width: 56px; height: 30px; border-radius: 15px; position: relative; cursor: pointer; transition: background 0.3s; }
+        .toggle-switch::after { content: ''; width: 24px; height: 24px; border-radius: 50%; background: white; position: absolute; top: 3px; left: 3px; transition: transform 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .toggle-switch.active { background: #16a34a; }
+        .toggle-switch.active::after { transform: translateX(26px); }
+        .toggle-switch:not(.active) { background: #d1d5db; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+        .modal-sheet { background: white; border-radius: 24px 24px 0 0; width: 100%; max-height: 90vh; overflow-y: auto; }
+        input, select, textarea { font-size: 16px !important; }
+        .job-card { border-left: 4px solid #3b82f6; }
+        .job-card.urgent { border-left-color: #ef4444; animation: urgentPulse 1s infinite; }
+        @keyframes urgentPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+    </style>
 </head>
-<body class="pb-20">
+<body class="bg-gray-50 text-gray-800 min-h-screen">
 
-<div id="loadingScreen" class="loading">
-  <div class="spinner"></div>
-</div>
-
-<!-- MAIN VIEW -->
-<div id="mainView">
-  <header class="flex justify-between items-center mb-6 p-4">
-    <h1 class="font-bold text-xl">Rider App</h1>
-    <label class="flex items-center gap-2 cursor-pointer">
-      <span class="text-sm font-bold" id="statusText">OFFLINE</span>
-      <input type="checkbox" id="toggle" class="sr-only peer">
-      <div class="w-10 h-6 bg-slate-300 rounded-full peer peer-checked:bg-green-500 relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition peer-checked:after:translate-x-4"></div>
-    </label>
-  </header>
-
-  <div class="p-4">
-    <div class="bg-slate-900 text-white p-5 rounded-2xl mb-6 shadow-lg">
-      <p class="text-slate-400 text-xs uppercase">Today's Earnings</p>
-      <h2 class="text-3xl font-bold" id="earnings">₱0</h2>
-      <p class="text-xs text-slate-400 mt-1"><span id="deliveryCount">0</span> deliveries</p>
-    </div>
-
-    <h3 class="font-bold text-lg mb-3">Available Jobs</h3>
-    <div id="jobs" class="space-y-3">
-      <p class="text-center text-slate-400 text-sm">Go online to see jobs</p>
-    </div>
-  </div>
-</div>
-
-<!-- SETTINGS VIEW -->
-<div id="settingsView" class="hidden">
-  <header class="flex items-center gap-3 mb-6 p-4 border-b border-slate-200">
-    <button onclick="showMain()" class="p-2 hover:bg-slate-100 rounded-lg">
-      <i data-lucide="arrow-left" class="w-5 h-5"></i>
-    </button>
-    <h1 class="font-bold text-xl">Settings</h1>
-  </header>
-
-  <div class="p-4 space-y-4">
-    
-    <!-- Profile Section -->
-    <div class="bg-white rounded-xl p-4 shadow-sm">
-      <h3 class="font-bold text-sm text-slate-500 uppercase mb-3">Profile</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Full Name</label>
-          <input id="settingName" type="text" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Phone Number</label>
-          <input id="settingPhone" type="tel" placeholder="09XX XXX XXXX" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Email</label>
-          <input id="settingEmail" type="email" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-      </div>
-    </div>
-
-    <!-- Vehicle Section -->
-    <div class="bg-white rounded-xl p-4 shadow-sm">
-      <h3 class="font-bold text-sm text-slate-500 uppercase mb-3">Vehicle Information</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Vehicle Type</label>
-          <select id="settingVehicleType" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-            <option value="motorcycle">Motorcycle</option>
-            <option value="bicycle">Bicycle</option>
-            <option value="car">Car</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Plate Number</label>
-          <input id="settingPlate" type="text" placeholder="ABC-1234" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm uppercase">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Vehicle Model</label>
-          <input id="settingVehicleModel" type="text" placeholder="e.g., Yamaha NMAX" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-      </div>
-    </div>
-
-    <!-- Payment Section -->
-    <div class="bg-white rounded-xl p-4 shadow-sm">
-      <h3 class="font-bold text-sm text-slate-500 uppercase mb-3">Payment Method</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-slate-600">GCash Number</label>
-          <input id="settingGCash" type="tel" placeholder="09XX XXX XXXX" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Bank Name</label>
-          <select id="settingBank" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-            <option value="">Select Bank</option>
-            <option value="BDO">BDO</option>
-            <option value="BPI">BPI</option>
-            <option value="Metrobank">Metrobank</option>
-            <option value="UnionBank">UnionBank</option>
-            <option value="Maya">Maya</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Bank Account Number</label>
-          <input id="settingBankAccount" type="text" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-      </div>
-    </div>
-
-    <!-- Delivery Preferences -->
-    <div class="bg-white rounded-xl p-4 shadow-sm">
-      <h3 class="font-bold text-sm text-slate-500 uppercase mb-3">Delivery Preferences</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Maximum Delivery Distance (km)</label>
-          <input id="settingMaxDistance" type="number" value="10" min="1" max="50" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600">Working Hours</label>
-          <div class="flex gap-2 mt-1">
-            <input id="settingStartTime" type="time" value="08:00" class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-            <span class="self-center text-sm">to</span>
-            <input id="settingEndTime" type="time" value="22:00" class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-          </div>
-        </div>
+    <!-- Header -->
+    <header class="safe-top bg-green-600 text-white p-4 sticky top-0 z-40 shadow-lg">
         <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-semibold">Accept Long Distance Orders</p>
-            <p class="text-xs text-slate-500">Orders beyond 5km</p>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="settingLongDistance" class="sr-only peer" checked>
-            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-          </label>
+            <a href="index.html" class="text-white/80 text-sm">← Home</a>
+            <h1 class="text-lg font-bold">🛵 D-Shop Rider</h1>
+            <div id="status-badge" class="bg-red-500 px-3 py-1 rounded-full text-xs font-bold">OFFLINE</div>
         </div>
-      </div>
-    </div>
+    </header>
 
-    <!-- Notifications -->
-    <div class="bg-white rounded-xl p-4 shadow-sm">
-      <h3 class="font-bold text-sm text-slate-500 uppercase mb-3">Notifications</h3>
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-semibold">Sound Alerts</p>
-            <p class="text-xs text-slate-500">Play sound for new orders</p>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="settingSound" class="sr-only peer" checked>
-            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-          </label>
+    <!-- ===== HOME PAGE ===== -->
+    <main id="page-home" class="p-4">
+        <!-- Earnings Card -->
+        <div class="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-6 rounded-2xl shadow-lg mb-4">
+            <p class="text-green-100 text-sm">Today's Earnings</p>
+            <p class="text-4xl font-bold mt-1" id="rider-earnings">₱0</p>
+            <div class="flex justify-between mt-4 text-sm text-green-100">
+                <span><span id="rider-deliveries" class="font-bold text-white">0</span> deliveries</span>
+                <span>Rate: ₱<span id="rider-rate">30</span>/delivery</span>
+            </div>
         </div>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-semibold">Vibration</p>
-            <p class="text-xs text-slate-500">Vibrate for new orders</p>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="settingVibration" class="sr-only peer" checked>
-            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-          </label>
+
+        <!-- Go Online Toggle -->
+        <button onclick="toggleOnline()" id="toggle-btn" class="w-full py-5 rounded-2xl font-bold text-lg shadow-lg mb-6 transition-all active:scale-95 bg-gray-800 text-white">
+            🟢 Go Online
+        </button>
+
+        <!-- Available Jobs -->
+        <section>
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-lg font-bold">Available Jobs</h2>
+                <span id="job-count" class="text-sm text-gray-400">0 jobs</span>
+            </div>
+            <div id="jobs-list" class="space-y-3">
+                <div class="text-center py-12 text-gray-400 bg-white rounded-2xl shadow-sm">
+                    <div class="text-4xl mb-2">📦</div>
+                    <p>Go online to see available jobs</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Active Delivery -->
+        <section id="active-delivery" class="hidden mt-6">
+            <h2 class="text-lg font-bold mb-3">🚀 Active Delivery</h2>
+            <div id="active-delivery-card" class="bg-blue-50 border-2 border-blue-300 p-4 rounded-2xl">
+                <!-- Filled dynamically -->
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== SETTINGS PAGE ===== -->
+    <main id="page-settings" class="p-4 hidden">
+        <h2 class="text-xl font-bold mb-4">Settings</h2>
+
+        <!-- Profile Section -->
+        <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
+            <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">👤 Profile</h3>
+            <input id="set-name" type="text" placeholder="Full Name" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+            <input id="set-phone" type="tel" placeholder="Phone Number" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+            <input id="set-email" type="email" placeholder="Email" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500">
         </div>
-      </div>
+
+        <!-- Vehicle Section -->
+        <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
+            <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">🏍️ Vehicle Information</h3>
+            <select id="set-vehicle" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="Motorcycle">Motorcycle</option>
+                <option value="Bicycle">Bicycle</option>
+                <option value="Car">Car</option>
+            </select>
+            <input id="set-plate" type="text" placeholder="Plate Number" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+            <input id="set-model" type="text" placeholder="Vehicle Model" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+
+        <!-- Payment Section -->
+        <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
+            <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">💳 Payment Method</h3>
+            <input id="set-gcash" type="text" placeholder="GCash Number" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+            <select id="set-bank" class="w-full p-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Select Bank</option>
+                <option value="BDO">BDO</option>
+                <option value="BPI">BPI</option>
+                <option value="Metrobank">Metrobank</option>
+                <option value="UnionBank">UnionBank</option>
+                <option value="Maya">Maya</option>
+            </select>
+            <input id="set-bank-acct" type="text" placeholder="Bank Account Number" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+
+        <!-- Delivery Preferences -->
+        <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
+            <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">📍 Delivery Preferences</h3>
+            <div class="mb-3">
+                <label class="text-sm text-gray-600">Maximum Delivery Distance (km)</label>
+                <input id="set-distance" type="number" value="10" class="w-full p-3 border rounded-xl mt-1 focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+            <div class="flex justify-between items-center py-2">
+                <div>
+                    <p class="font-medium text-sm">Accept Long Distance Orders</p>
+                    <p class="text-xs text-gray-400">Orders beyond 5km</p>
+                </div>
+                <div id="toggle-long" class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
+            <h3 class="font-bold text-sm text-gray-500 uppercase mb-3">🔔 Notifications</h3>
+            <div class="flex justify-between items-center py-2 border-b">
+                <div>
+                    <p class="font-medium text-sm">Sound Alerts</p>
+                    <p class="text-xs text-gray-400">Play sound for new orders</p>
+                </div>
+                <div id="toggle-sound" class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+            </div>
+            <div class="flex justify-between items-center py-2">
+                <div>
+                    <p class="font-medium text-sm">Vibration</p>
+                    <p class="text-xs text-gray-400">Vibrate for new orders</p>
+                </div>
+                <div id="toggle-vibrate" class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+            </div>
+        </div>
+
+        <button onclick="saveSettings()" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg active:bg-green-700 transition mb-4">Save Settings</button>
+
+        <!-- Extra Links -->
+        <div class="space-y-2 mb-8">
+            <button class="w-full bg-white p-4 rounded-xl shadow-sm text-left text-sm font-medium">📊 Earnings History</button>
+            <button class="w-full bg-white p-4 rounded-xl shadow-sm text-left text-sm font-medium">📈 Performance Stats</button>
+            <button class="w-full bg-white p-4 rounded-xl shadow-sm text-left text-sm font-medium">❓ Help & Support</button>
+            <a href="index.html" class="block w-full bg-white p-4 rounded-xl shadow-sm text-left text-sm font-medium text-red-500">🚪 Logout</a>
+        </div>
+
+        <p class="text-center text-xs text-gray-400 pb-4">D-Shop Rider App v1.0<br>© 2026 D-Shop PH</p>
+    </main>
+
+    <!-- Job Accept Modal -->
+    <div id="job-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeJobModal()">
+        <div class="modal-sheet slide-up p-6">
+            <h3 class="text-lg font-bold mb-1">📦 New Order</h3>
+            <p class="text-sm text-gray-400 mb-4" id="modal-order-id">#---</p>
+            <div class="bg-gray-50 rounded-xl p-4 mb-4 space-y-2">
+                <div class="flex justify-between"><span class="text-gray-500">Customer</span><span class="font-medium" id="modal-customer">---</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Total</span><span class="font-bold text-blue-600" id="modal-total">₱0</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">Your Earning</span><span class="font-bold text-green-600" id="modal-earning">₱30</span></div>
+            </div>
+            <p class="text-sm text-gray-500 mb-4"><strong>Address:</strong> <span id="modal-address">---</span></p>
+            <button onclick="confirmAccept()" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg active:bg-green-700">Accept Job</button>
+            <button onclick="closeJobModal()" class="w-full text-gray-500 py-3 mt-2">Decline</button>
+        </div>
     </div>
 
-    <!-- Save Button -->
-    <button onclick="saveSettings()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg">
-      Save Settings
-    </button>
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav safe-bottom">
+        <div class="flex max-w-lg mx-auto">
+            <button onclick="switchPage('home')" class="nav-item active" id="nav-home">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"/></svg>
+                Home
+            </button>
+            <button onclick="switchPage('settings')" class="nav-item" id="nav-settings">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Settings
+            </button>
+        </div>
+    </nav>
 
-    <!-- Account Actions -->
-    <div class="bg-white rounded-xl p-4 shadow-sm space-y-2">
-      <button onclick="viewEarningsHistory()" class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-lg flex items-center gap-3">
-        <i data-lucide="wallet" class="w-5 h-5 text-slate-600"></i>
-        <span class="text-sm font-semibold">Earnings History</span>
-      </button>
-      <button onclick="viewPerformance()" class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-lg flex items-center gap-3">
-        <i data-lucide="trending-up" class="w-5 h-5 text-slate-600"></i>
-        <span class="text-sm font-semibold">Performance Stats</span>
-      </button>
-      <button onclick="contactSupport()" class="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-lg flex items-center gap-3">
-        <i data-lucide="help-circle" class="w-5 h-5 text-slate-600"></i>
-        <span class="text-sm font-semibold">Help & Support</span>
-      </button>
-      <button onclick="logout()" class="w-full text-left px-4 py-3 hover:bg-red-50 rounded-lg flex items-center gap-3 text-red-600">
-        <i data-lucide="log-out" class="w-5 h-5"></i>
-        <span class="text-sm font-semibold">Logout</span>
-      </button>
-    </div>
+    <script>
+        // ==========================================
+        // ⚙️ APPWRITE CONFIGURATION
+        // ==========================================
+        const client = new Appwrite.Client();
+        client.setEndpoint('https://sgp.cloud.appwrite.io/v1').setProject('6a5099d00031731cad59');
+        const databases = new Appwrite.Databases(client);
+        const DB_ID = '6a509abf002aed29dd40';
+        const SETTINGS_DOC_ID = 'YOUR_SETTINGS_DOC_ID';
 
-    <!-- App Info -->
-    <div class="text-center text-xs text-slate-400 py-4">
-      <p>D-Shop Rider App v1.0</p>
-      <p>© 2026 D-Shop PH</p>
-    </div>
+        const RIDER_ID = 'rider_' + (localStorage.getItem('rider_id') || Math.random().toString(36).substring(7));
+        localStorage.setItem('rider_id', RIDER_ID);
 
-  </div>
-</div>
+        let isOnline = false;
+        let todayEarnings = 0;
+        let todayDeliveries = 0;
+        let pendingJobId = null;
+        let riderFee = 30;
 
-<!-- BOTTOM NAVIGATION -->
-<div class="bottom-nav">
-  <button onclick="showMain()" class="nav-btn active" id="navHome">
-    <i data-lucide="home" class="w-6 h-6"></i>
-    <span>Home</span>
-  </button>
-  <button onclick="showSettings()" class="nav-btn" id="navSettings">
-    <i data-lucide="settings" class="w-6 h-6"></i>
-    <span>Settings</span>
-  </button>
-</div>
-
-<!-- Toast -->
-<div id="toast" class="hidden fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3 rounded-xl shadow-2xl"></div>
-
-<script>
-let isOnline = false;
-let myEarnings = 0;
-let myDeliveries = 0;
-const riderId = localStorage.getItem('riderId') || 'rider_' + Math.floor(Math.random()*10000);
-localStorage.setItem('riderId', riderId);
-
-// Load settings
-function loadSettings() {
-  const settings = JSON.parse(localStorage.getItem('riderSettings') || '{}');
-  document.getElementById('settingName').value = settings.name || localStorage.getItem('riderName') || '';
-  document.getElementById('settingPhone').value = settings.phone || '';
-  document.getElementById('settingEmail').value = settings.email || '';
-  document.getElementById('settingVehicleType').value = settings.vehicleType || 'motorcycle';
-  document.getElementById('settingPlate').value = settings.plate || '';
-  document.getElementById('settingVehicleModel').value = settings.vehicleModel || '';
-  document.getElementById('settingGCash').value = settings.gcash || '';
-  document.getElementById('settingBank').value = settings.bank || '';
-  document.getElementById('settingBankAccount').value = settings.bankAccount || '';
-  document.getElementById('settingMaxDistance').value = settings.maxDistance || 10;
-  document.getElementById('settingStartTime').value = settings.startTime || '08:00';
-  document.getElementById('settingEndTime').value = settings.endTime || '22:00';
-  document.getElementById('settingLongDistance').checked = settings.longDistance !== false;
-  document.getElementById('settingSound').checked = settings.sound !== false;
-  document.getElementById('settingVibration').checked = settings.vibration !== false;
-}
-
-// Save settings
-function saveSettings() {
-  const settings = {
-    name: document.getElementById('settingName').value,
-    phone: document.getElementById('settingPhone').value,
-    email: document.getElementById('settingEmail').value,
-    vehicleType: document.getElementById('settingVehicleType').value,
-    plate: document.getElementById('settingPlate').value,
-    vehicleModel: document.getElementById('settingVehicleModel').value,
-    gcash: document.getElementById('settingGCash').value,
-    bank: document.getElementById('settingBank').value,
-    bankAccount: document.getElementById('settingBankAccount').value,
-    maxDistance: parseInt(document.getElementById('settingMaxDistance').value),
-    startTime: document.getElementById('settingStartTime').value,
-    endTime: document.getElementById('settingEndTime').value,
-    longDistance: document.getElementById('settingLongDistance').checked,
-    sound: document.getElementById('settingSound').checked,
-    vibration: document.getElementById('settingVibration').checked
-  };
-  
-  localStorage.setItem('riderSettings', JSON.stringify(settings));
-  
-  // Update rider name
-  if(settings.name) {
-    localStorage.setItem('riderName', settings.name);
-  }
-  
-  // Save to Firebase
-  if(typeof db !== 'undefined') {
-    db.collection('riders').doc(riderId).set({
-      ...settings,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      toast('Settings saved successfully!');
-    }).catch(error => {
-      console.error('Error saving to Firebase:', error);
-      toast('Settings saved locally');
-    });
-  } else {
-    toast('Settings saved successfully!');
-  }
-}
-
-// Navigation
-function showMain() {
-  document.getElementById('mainView').classList.remove('hidden');
-  document.getElementById('settingsView').classList.add('hidden');
-  document.getElementById('navHome').classList.add('active');
-  document.getElementById('navSettings').classList.remove('active');
-}
-
-function showSettings() {
-  document.getElementById('mainView').classList.add('hidden');
-  document.getElementById('settingsView').classList.remove('hidden');
-  document.getElementById('navHome').classList.remove('active');
-  document.getElementById('navSettings').classList.add('active');
-  loadSettings();
-  lucide.createIcons();
-}
-
-// Helper functions
-function viewEarningsHistory() {
-  alert('Earnings History\n\nToday: ₱' + myEarnings + '\nThis Week: ₱' + (myEarnings * 7) + '\nThis Month: ₱' + (myEarnings * 30));
-}
-
-function viewPerformance() {
-  alert('Performance Stats\n\nTotal Deliveries: ' + myDeliveries + '\nRating: 4.9⭐\nAcceptance Rate: 95%\nOn-Time Rate: 98%');
-}
-
-function contactSupport() {
-  alert('Need help?\n\nEmail: support@dshop.ph\nPhone: 0917-D-SHOP\nHours: 8AM - 10PM');
-}
-
-function logout() {
-  if(confirm('Are you sure you want to logout?')) {
-    localStorage.clear();
-    location.reload();
-  }
-}
-
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.remove('hidden');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.add('hidden'), 3000);
-}
-
-// Online/Offline Toggle
-document.getElementById('toggle').addEventListener('change', (e) => {
-  isOnline = e.target.checked;
-  document.getElementById('statusText').innerText = isOnline ? "ONLINE" : "OFFLINE";
-  document.getElementById('statusText').className = isOnline ? "text-sm font-bold text-green-600" : "text-sm font-bold text-slate-500";
-  
-  if(isOnline) {
-    loadJobs();
-    document.getElementById('loadingScreen').style.display = 'none';
-  } else {
-    document.getElementById('jobs').innerHTML = '<p class="text-center text-slate-400 text-sm">Go online to see jobs</p>';
-  }
-});
-
-// Listen to orders in real-time
-if(typeof db !== 'undefined') {
-  db.collection('orders')
-    .where('status', '==', 'new')
-    .onSnapshot((snapshot) => {
-      if(isOnline) {
-        const orders = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-        renderJobs(orders);
-        
-        // Play sound if enabled
-        const settings = JSON.parse(localStorage.getItem('riderSettings') || '{}');
-        if(settings.sound !== false && orders.length > 0) {
-          // Play notification sound
-          const audio = new Audio('data:audio/wav;base64,UklGNoAGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoA');
-          audio.play().catch(() => {});
+        // ==========================================
+        // 🔧 PWA: Register Service Worker
+        // ==========================================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
         }
-      }
-    });
-}
 
-function loadJobs() {
-  // Initial load handled by listener
-}
+        // Load rider fee from settings
+        async function loadRiderFee() {
+            try {
+                const s = await databases.getDocument(DB_ID, 'settings', SETTINGS_DOC_ID);
+                riderFee = s.rider_fee || 30;
+                document.getElementById('rider-rate').innerText = riderFee;
+            } catch(e) { console.error(e); }
+        }
+        loadRiderFee();
 
-function renderJobs(orders) {
-  const container = document.getElementById('jobs');
-  
-  if(orders.length === 0) {
-    container.innerHTML = '<p class="text-center text-slate-400 text-sm">No new orders</p>';
-    return;
-  }
+        // ==========================================
+        // 🟢 TOGGLE ONLINE / OFFLINE
+        // ==========================================
+        async function toggleOnline() {
+            isOnline = !isOnline;
+            const badge = document.getElementById('status-badge');
+            const btn = document.getElementById('toggle-btn');
 
-  container.innerHTML = orders.map(o => `
-    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-      <div class="flex justify-between mb-2">
-        <span class="font-bold">${o.id.substring(0,8)}</span>
-        <span class="font-bold text-green-600">₱50 fee</span>
-      </div>
-      <p class="text-sm text-slate-600 mb-1">📍 ${o.customer}</p>
-      <p class="text-xs text-slate-500 mb-3">${o.address || 'No address'}</p>
-      <p class="text-xs text-slate-500 mb-3">${o.items.length} items • ₱${o.total}</p>
-      <button onclick="accept('${o.id}')" class="w-full bg-black text-white py-2 rounded-lg font-bold text-sm">Accept Job</button>
-    </div>
-  `).join('');
-  lucide.createIcons();
-}
+            if (isOnline) {
+                badge.innerText = 'ONLINE';
+                badge.className = 'bg-green-300 text-green-800 px-3 py-1 rounded-full text-xs font-bold';
+                btn.innerHTML = '🔴 Go Offline';
+                btn.className = 'w-full py-5 rounded-2xl font-bold text-lg shadow-lg mb-6 transition-all active:scale-95 bg-red-600 text-white';
+                showToast('🟢 You are now online!');
+                loadJobs();
+            } else {
+                badge.innerText = 'OFFLINE';
+                badge.className = 'bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold';
+                btn.innerHTML = '🟢 Go Online';
+                btn.className = 'w-full py-5 rounded-2xl font-bold text-lg shadow-lg mb-6 transition-all active:scale-95 bg-gray-800 text-white';
+                document.getElementById('jobs-list').innerHTML = '<div class="text-center py-12 text-gray-400 bg-white rounded-2xl shadow-sm"><div class="text-4xl mb-2">📦</div><p>Go online to see available jobs</p></div>';
+                document.getElementById('job-count').innerText = '0 jobs';
+                showToast('🔴 You are now offline');
+            }
+        }
 
-async function accept(id) {
-  if(!confirm('Accept this delivery job?')) return;
-  
-  try {
-    const riderName = localStorage.getItem('riderName') || 'Rider';
-    
-    if(typeof db !== 'undefined') {
-      await db.collection('orders').doc(id).update({
-        status: 'out',
-        rider: riderName,
-        riderId: riderId,
-        acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-    
-    myEarnings += 50;
-    myDeliveries++;
-    document.getElementById('earnings').innerText = '₱' + myEarnings;
-    document.getElementById('deliveryCount').innerText = myDeliveries;
-    
-    toast("Job Accepted! Proceed to pickup.");
-    showActiveDelivery(id);
-  } catch(error) {
-    alert("Error: " + error.message);
-  }
-}
+        // ==========================================
+        // 📦 LOAD & RENDER JOBS
+        // ==========================================
+        async function loadJobs() {
+            if (!isOnline) return;
+            try {
+                const res = await databases.listDocuments(DB_ID, 'orders', [
+                    Appwrite.Query.equal('status', ['pending', 'preparing']),
+                    Appwrite.Query.orderDesc('$createdAt')
+                ]);
+                renderJobs(res.documents);
+            } catch (err) { console.error(err); }
+        }
 
-function showActiveDelivery(id) {
-  document.getElementById('jobs').innerHTML = `
-    <div class="bg-green-50 border-2 border-green-500 p-4 rounded-xl">
-      <p class="font-bold text-green-700 mb-2">🚚 Active Delivery</p>
-      <p class="text-sm">Order: ${id.substring(0,8)}</p>
-      <button onclick="completeDelivery('${id}')" class="w-full mt-3 bg-green-600 text-white py-2 rounded-lg font-bold text-sm">Mark as Delivered</button>
-    </div>
-  `;
-}
+        function renderJobs(jobs) {
+            document.getElementById('job-count').innerText = `${jobs.length} jobs`;
+            const list = document.getElementById('jobs-list');
+            if (jobs.length === 0) {
+                list.innerHTML = '<div class="text-center py-12 text-gray-400 bg-white rounded-2xl shadow-sm"><div class="text-4xl mb-2">😴</div><p>No jobs available right now</p><p class="text-xs mt-1">New orders will appear here automatically</p></div>';
+                return;
+            }
+            list.innerHTML = jobs.map(job => `
+                <div class="job-card bg-white p-4 rounded-2xl shadow-sm fade-in cursor-pointer" onclick="showJobModal('${job.$id}', '${job.customer_name}', ${job.total_amount}, '${(job.delivery_address||'').replace(/'/g,"\\'")}')">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold">Order #${job.$id.substring(0, 8)}</p>
+                            <p class="text-sm text-gray-500 mt-1">👤 ${job.customer_name}</p>
+                            <p class="text-xs text-gray-400 mt-1">📍 ${(job.delivery_address||'').substring(0, 40)}...</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-lg text-blue-600">₱${job.total_amount}</p>
+                            <p class="text-xs text-green-600 font-medium">+₱${riderFee} earn</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-async function completeDelivery(id) {
-  if(!confirm('Mark as delivered?')) return;
-  
-  try {
-    if(typeof db !== 'undefined') {
-      await db.collection('orders').doc(id).update({
-        status: 'delivered',
-        deliveredAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-    
-    toast("Delivery completed! +₱50 earned");
-    document.getElementById('jobs').innerHTML = '<p class="text-center text-slate-400 text-sm">No new orders</p>';
-  } catch(error) {
-    alert("Error: " + error.message);
-  }
-}
+        // ==========================================
+        // 📋 JOB MODAL
+        // ==========================================
+        function showJobModal(orderId, customer, total, address) {
+            pendingJobId = orderId;
+            document.getElementById('modal-order-id').innerText = `#${orderId.substring(0, 8)}`;
+            document.getElementById('modal-customer').innerText = customer;
+            document.getElementById('modal-total').innerText = `₱${total}`;
+            document.getElementById('modal-earning').innerText = `₱${riderFee}`;
+            document.getElementById('modal-address').innerText = address;
+            document.getElementById('job-modal').classList.remove('hidden');
+        }
 
-// Initialize
-document.getElementById('loadingScreen').style.display = 'none';
-lucide.createIcons();
-loadSettings();
-<script src="config.js"></script>
-<script src="rider.js"></script>
+        function closeJobModal() {
+            document.getElementById('job-modal').classList.add('hidden');
+            pendingJobId = null;
+        }
+
+        async function confirmAccept() {
+            if (!pendingJobId) return;
+            try {
+                await databases.updateDocument(DB_ID, 'orders', pendingJobId, {
+                    status: 'out_for_delivery',
+                    rider_id: RIDER_ID
+                });
+                closeJobModal();
+                showToast('✅ Job Accepted!');
+                showActiveDelivery(pendingJobId);
+                loadJobs();
+            } catch (err) { console.error(err); showToast('❌ Error accepting job'); }
+        }
+
+        function showActiveDelivery(orderId) {
+            const section = document.getElementById('active-delivery');
+            section.classList.remove('hidden');
+            document.getElementById('active-delivery-card').innerHTML = `
+                <p class="font-bold mb-1">Order #${orderId.substring(0, 8)}</p>
+                <p class="text-sm text-gray-500 mb-3">Delivering to customer...</p>
+                <button onclick="completeDelivery('${orderId}')" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold active:bg-green-700">✅ Mark as Delivered</button>
+            `;
+        }
+
+        async function completeDelivery(orderId) {
+            try {
+                await databases.updateDocument(DB_ID, 'orders', orderId, { status: 'delivered' });
+                todayDeliveries++;
+                todayEarnings += riderFee;
+                document.getElementById('rider-earnings').innerText = `₱${todayEarnings}`;
+                document.getElementById('rider-deliveries').innerText = todayDeliveries;
+                document.getElementById('active-delivery').classList.add('hidden');
+                showToast(`🎉 Delivered! +₱${riderFee}`);
+                loadJobs();
+            } catch (err) { console.error(err); showToast('❌ Error completing delivery'); }
+        }
+
+        // ==========================================
+        // 🚨 REALTIME JOB ALERTS
+        // ==========================================
+        client.subscribe(`databases.${DB_ID}.collections.orders.documents`, (res) => {
+            const order = res.payload;
+            if (isOnline && (order.status === 'pending' || order.status === 'preparing')) {
+                loadJobs();
+                // Vibrate if enabled
+                if (document.getElementById('toggle-vibrate').classList.contains('active') && navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]);
+                }
+                showToast('🔔 New order available!');
+            }
+            if (order.rider_id === RIDER_ID && order.status === 'delivered') {
+                todayDeliveries++;
+                todayEarnings += riderFee;
+                document.getElementById('rider-earnings').innerText = `₱${todayEarnings}`;
+                document.getElementById('rider-deliveries').innerText = todayDeliveries;
+            }
+        });
+
+        // ==========================================
+        // ⚙️ SETTINGS
+        // ==========================================
+        function saveSettings() {
+            localStorage.setItem('rider_name', document.getElementById('set-name').value);
+            localStorage.setItem('rider_phone', document.getElementById('set-phone').value);
+            showToast('✅ Settings saved!');
+        }
+
+        // Load saved settings
+        document.getElementById('set-name').value = localStorage.getItem('rider_name') || '';
+        document.getElementById('set-phone').value = localStorage.getItem('rider_phone') || '';
+
+        // ==========================================
+        // 🧭 NAVIGATION
+        // ==========================================
+        function switchPage(page) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`nav-${page}`).classList.add('active');
+            document.getElementById('page-home').classList.toggle('hidden', page !== 'home');
+            document.getElementById('page-settings').classList.toggle('hidden', page !== 'settings');
+        }
+
+        function showToast(msg) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerText = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+    </script>
 </body>
 </html>
-
